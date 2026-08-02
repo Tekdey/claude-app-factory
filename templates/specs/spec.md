@@ -14,7 +14,10 @@ adapted from github/spec-kit (MIT) + Kiro EARS notation. -->
   DONE (verified; deltas merged into specs/current/; folder kept for history). -->
 - **Source:** [{{FR_id}}](../../../docs/product/prd.md#{{fr_anchor}})
 - **Feature entry:** `features.json` → `{{feature_id}}`
-- **Evidence target:** `evidence/{{slug}}.png` <!-- slug already starts with the feature id -->
+- **Components:** {{component_ids}} <!-- from the features.json entry; the FIRST
+  one carries the evidence. Any depends_on component must be running to verify. -->
+- **Evidence target:** `evidence/{{slug}}.{{ext}}` <!-- slug already starts with the
+  feature id; ext = png for simulator/browser, txt for http/cli -->
 
 ## User Story
 

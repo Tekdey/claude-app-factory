@@ -1,0 +1,38 @@
+{
+  "$comment": "Component manifest — every deliverable this project ships. EXAMPLE for a fictional habit tracker ('Habitude') that ships an iOS app, its API and a marketing site. /onboard generates the real components.json at the repo root from the Project shape questions (Q-S1/Q-S2). Read by /build-next (what to run), /verify (how to prove) and /status (what to report). A single-component project has exactly one entry — the structure never changes.",
+  "components": [
+    {
+      "id": "ios",
+      "name": "Habitude for iOS",
+      "kind": "mobile-app",
+      "stack": "SwiftUI · iOS 17+",
+      "path": "apps/ios",
+      "run": "scripts/ios/run.sh",
+      "verify": "simulator",
+      "primary": true,
+      "depends_on": ["api"]
+    },
+    {
+      "id": "api",
+      "name": "Habitude API",
+      "kind": "api",
+      "stack": "Express 5 · TypeScript · PostgreSQL",
+      "path": "apps/api",
+      "run": "scripts/api/run.sh",
+      "verify": "http",
+      "primary": false,
+      "depends_on": []
+    },
+    {
+      "id": "web",
+      "name": "Habitude marketing site",
+      "kind": "marketing-site",
+      "stack": "Astro · static hosting",
+      "path": "apps/web",
+      "run": "scripts/web/run.sh",
+      "verify": "browser",
+      "primary": false,
+      "depends_on": []
+    }
+  ]
+}

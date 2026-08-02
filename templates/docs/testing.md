@@ -12,13 +12,21 @@ Priorities are inverted from human teams: the **top** of the pyramid — the app
 actually running — is the source of truth, because agents are the ones most
 tempted to declare victory from code reading.
 
-1. **E2E acceptance scenarios via MCP (source of truth).** Every feature's
+1. **E2E acceptance scenarios (source of truth).** Every feature's
    Given/When/Then scenarios from `specs/changes/<slug>/spec.md` are executed
-   against the real app in the {{simulator_or_browser}} using
-   {{mcp_server_name}}. Discipline: accessibility snapshot before every
-   interaction — never guess coordinates from a screenshot; screenshot =
-   evidence, snapshot = navigation. A feature without a passing on-device run is
-   not done, whatever the unit tests say.
+   against the real running component, using the method its `components.json`
+   entry declares — one line per component below:
+
+   | Component | `verify` | Driven with | Discipline |
+   |---|---|---|---|
+   | `{{component_id}}` | {{verify_method}} | {{mcp_server_or_test_runner}} | {{discipline}} |
+
+   For `simulator`/`browser`: accessibility snapshot before every interaction —
+   never guess coordinates from a screenshot; screenshot = evidence, snapshot =
+   navigation. For `http`: issue the real requests and assert on status codes and
+   response bodies, covering validation and unauthorized paths, not just the
+   happy one. A feature without a passing run against the real component is not
+   done, whatever the unit tests say.
 2. **Unit tests on logic.** Pure logic — {{examples_of_core_logic}} (e.g. streak
    computation, date handling, parsing, pricing rules) — gets fast unit tests in
    `{{tests_path}}` using {{unit_test_framework}}. Test behavior, not structure.
@@ -38,15 +46,19 @@ tempted to declare victory from code reading.
 
 ## Evidence
 
-- Every verified feature has a screenshot at `evidence/F-XXX-<kebab-title>.png`,
-  captured at the assertion moment of its acceptance scenario (the screen state
-  that proves the Then clause).
+- Every verified feature has a proof file at `evidence/F-XXX-<kebab-title>.<ext>`,
+  captured at the assertion moment of its acceptance scenario. The extension
+  follows the proving component's `verify` method in components.json:
+  `simulator`/`browser` → `.png` screenshot of the screen state proving the Then
+  clause; `http`/`cli` → `.txt` transcript of the requests/commands with their
+  responses, status codes and exit codes; `none` (library) → `.txt` test output.
 - `features.json` `passes: true` requires the `evidence` field to hold that
   file's bare path (justification goes in `PROGRESS.md`). No evidence file →
   not passed.
-- Multi-scenario features may add `evidence/F-XXX-<kebab-title>-as2.png` etc.; the main
-  file covers the primary scenario. Failing runs keep their screenshot too —
+- Multi-scenario features may add `evidence/F-XXX-<kebab-title>-as2.<ext>` etc.; the
+  main file covers the primary scenario. Failing runs keep their proof file too —
   failure evidence speeds up the fix.
+- Onboarding smoke tests live at `evidence/onboarding-smoke-<component-id>.<ext>`.
 
 ## Deterministic Mode
 
@@ -66,5 +78,5 @@ Autonomous verification requires reproducible runs:
 
 | Task | Command | Budget |
 |---|---|---|
-| Full suite | `./scripts/test.sh` | {{full_budget}} |
-| Quick gate (runs at session stop) | `./scripts/verify-quick.sh` | < 60s |
+| Full suite, one component | `./scripts/{{component_id}}/test.sh` | {{full_budget}} |
+| Quick gate, every component (runs at session stop) | `./scripts/verify-quick.sh` | < 60s total |

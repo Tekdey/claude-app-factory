@@ -1,12 +1,17 @@
 # claude-app-factory
 
-**A GitHub template for apps built end-to-end by AI agents.**
+**A GitHub template for products built end-to-end by AI agents.**
 
 Clone it, answer a guided interview, and Claude Code generates the entire project
 foundation — constitution, product brief (Lean Canvas), PRD, personas, roadmap,
-architecture decisions (ADRs), design system, tone of voice — then builds your app
-feature by feature, session after session, verifying every behavior in the real iOS
-simulator or browser with screenshot proof.
+architecture decisions (ADRs), design system, tone of voice — then builds your product
+feature by feature, session after session, verifying every behavior against the real
+running code with captured proof.
+
+A project is rarely one app. If yours ships a mobile app **and** an API **and** a
+marketing site, the interview asks about all of them up front, and each becomes a
+component with its own stack, scaffold and verification method — one repo, one PRD, one
+design system, one roadmap.
 
 Your role: product owner. You answer questions, approve the direction, and watch the
 app take shape. The agent's role: the entire development team.
@@ -23,13 +28,13 @@ app take shape. The agent's role: the entire development team.
 3. **Launch Claude Code** — run `claude` in the folder. Accept the workspace trust
    prompt, then approve the proposed MCP servers. (Optional but useful:
    `./init.sh doctor` checks your environment first.)
-4. **Run `/onboard`** — answer the guided interview: product, audience, business model,
-   design, tone, tech. Budget 15–20 minutes. Every question offers concrete options and a
-   "you decide" escape hatch.
+4. **Run `/onboard`** — answer the guided interview: product, **what the project ships**,
+   audience, business model, design, tone, tech. Budget 15–20 minutes. Every question
+   offers concrete options and a "you decide" escape hatch.
 5. **Let the agent generate** — it writes every foundation document into `docs/`, creates
-   `features.json` (the ledger of features to build), scaffolds the app in `app/`,
-   configures the MCP servers for your platform, and runs a first smoke test with a
-   screenshot saved to `evidence/`.
+   `components.json` (what ships) and `features.json` (the ledger of features to build),
+   scaffolds each component in `apps/<id>/`, configures the MCP servers they need, and
+   smoke-tests each one with proof saved to `evidence/`.
 6. **Build, one feature at a time** — from then on, each session:
    - `/build-next` — builds the next feature (exactly one per session)
    - `/status` — where things stand: features passing, current phase, next action
@@ -39,10 +44,10 @@ app take shape. The agent's role: the entire development team.
 
 | Command | What it does |
 |---------|--------------|
-| `/onboard` | Guided interview + generation of every foundation doc + app scaffold + MCP configuration. Run once after cloning (re-runnable to update). |
+| `/onboard` | Guided interview + generation of every foundation doc, `components.json`, `features.json`, each component's scaffold and the MCP configuration. Run once after cloning (re-runnable to update or add a component). |
 | `/design` | Proposes 2–3 distinct art directions with rendered previews, you pick one, then writes the design system into `docs/design/`. Re-runnable anytime. |
-| `/build-next` | Builds the next feature from `features.json`: spec → plan → tasks → implementation → verification on the real app → screenshot proof. |
-| `/verify` | Verifies one feature (`/verify F-012`), all of them (`/verify all`), or recently touched ones, by driving the simulator/browser. |
+| `/build-next` | Builds the next feature from `features.json`: spec → plan → tasks → implementation → verification against the real running component(s) → captured proof. |
+| `/verify` | Verifies one feature (`/verify F-012`), one component (`/verify api`), all of them (`/verify all`), or recently touched ones, by driving the real components. |
 | `/status` | Read-only dashboard: X/Y features passing, progress against the roadmap, in-flight changes, suggested next action. |
 | `/new-feature` | Adds a feature to the backlog (mini-interview, updates the PRD, roadmap and `features.json`). Implements nothing — `/build-next` does the building. |
 
@@ -58,10 +63,11 @@ docs/
 specs/
   current/               # living spec of what is already built
   changes/<slug>/        # spec.md + plan.md + tasks.md for each feature
+components.json          # what the project ships: stack, path, run script, verify method
 features.json            # the feature ledger (passes: true/false + evidence path)
-app/                     # your application's source code
-evidence/                # screenshots proving each feature works
-scripts/                 # run.sh, format.sh, test.sh, verify-quick.sh (per stack)
+apps/<id>/               # source code, one folder per component
+evidence/                # screenshots and transcripts proving each feature works
+scripts/                 # format.sh + verify-quick.sh dispatchers, then <id>/ per component
 PROGRESS.md              # session log — the agent's memory between sessions
 ```
 
@@ -69,18 +75,27 @@ None of this is written by hand: onboarding and the commands take care of it. Th
 skeletons used to generate these documents live in `templates/` (never edit them for a
 specific project — they are the source).
 
-## Supported platforms
+## Components and platforms
 
-| Platform | Stack | Autonomous verification via MCP |
-|----------|-------|---------------------------------|
-| **Native iOS** *(default)* | SwiftUI | XcodeBuildMCP — build, simulator, screenshots, UI interaction |
-| **Web** | Vite or Next.js | Playwright MCP — headless browser |
-| **Cross-platform** | Expo / React Native | mobile-mcp — iOS simulator / Android emulator (EAS cloud builds work without a Mac) |
+Each component you declare gets its own stack, scaffold, scripts and — crucially — its own
+way of proving that features work:
 
-The platform is chosen **during onboarding**: the agent rewrites `.mcp.json` from the
-matching variant in `templates/mcp/` (plus a backend block — Supabase, Convex — if you
-pick one). **Restart Claude Code afterwards** and approve the new MCP servers, otherwise
-they won't be loaded.
+| Component kind | Default stack | How the agent verifies it | Evidence |
+|---|---|---|---|
+| **Mobile app** *(iOS default)* | SwiftUI, or Expo / React Native | XcodeBuildMCP / mobile-mcp — simulator, accessibility tree, UI interaction | screenshot |
+| **Web app** | Next.js or Vite + React | Playwright MCP — headless browser | screenshot |
+| **Marketing site** | Astro | Playwright MCP | screenshot |
+| **API / backend** | Express + TypeScript | Real HTTP requests (vitest + supertest) | request/response transcript |
+| **Admin dashboard** | same as the web app | Playwright MCP | screenshot |
+| **CLI / library** | follows the component it serves | real commands / unit tests | output transcript |
+
+Stacks are chosen **during onboarding**, one question per component. The agent then merges
+the MCP servers your components need into `.mcp.json` (from `templates/mcp/`, plus a
+backend block — Supabase, Convex — if you pick one). **Restart Claude Code afterwards**
+and approve the new MCP servers, otherwise they won't be loaded.
+
+Note that Expo can build in the cloud via EAS, so a mobile app is possible without a Mac;
+native iOS requires macOS + Xcode.
 
 The template ships preconfigured for native iOS (XcodeBuildMCP + context7).
 
@@ -90,8 +105,9 @@ The template ships preconfigured for native iOS (XcodeBuildMCP + context7).
   scenarios) and a plan checked against the project's constitution.
 - **One feature at a time.** Each `/build-next` session delivers a single, fully verified
   feature before moving on.
-- **Screenshot proof.** A feature is never "done" on the agent's word: `passes: true`
-  requires a screenshot in `evidence/` showing the real behavior.
+- **Proof, not claims.** A feature is never "done" on the agent's word: `passes: true`
+  requires a file in `evidence/` — a screenshot for UI, a request/response transcript for
+  an API — showing the real behavior.
 - **Docs are the agent's memory.** `PROGRESS.md`, `features.json`, `docs/` and `specs/`
   carry the whole project state, so any session can pick up exactly where the last one
   stopped.
@@ -109,14 +125,20 @@ Two modes for `init.sh`:
 - `./init.sh doctor` *(default)* — environment diagnostic: macOS, Xcode, booted
   simulator, Node ≥ 18, jq, git. Prints a ✓/✗ table with remediation hints. Purely
   informational (always exits 0).
-- `./init.sh start` — launches the app by running `scripts/run.sh` (only available after
-  onboarding, which generates that script for your stack).
+- `./init.sh start [component-id]` — launches a component via `scripts/<id>/run.sh`
+  (defaults to the primary one; only available after onboarding, which generates those
+  scripts for your stacks).
 
 ## FAQ
 
 **Can I re-run `/onboard` later?**
 Yes. If it detects that `docs/constitution.md` already exists, it offers to update,
 regenerate a specific section, or cancel. Nothing is overwritten without your approval.
+
+**My project grew a new deliverable (an API, a site) — do I start over?**
+No. Re-run `/onboard` and pick "Add a component": it asks about that one only, appends it
+to `components.json`, scaffolds it, and extends the PRD, roadmap and feature ledger.
+Everything already built stays untouched.
 
 **Can I add context after onboarding?**
 Yes. Drop new files into `context/` anytime: the agent reads them during an update run of

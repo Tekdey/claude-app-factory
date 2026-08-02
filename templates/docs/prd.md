@@ -39,7 +39,13 @@ docs/product/personas.md. Format: As <persona>, when <situation>, I want
   IF <condition> THE SYSTEM SHALL...; WHILE <state> THE SYSTEM SHALL...;
   WHERE <context> THE SYSTEM SHALL...
 - Each FR is independently testable and user-observable. If you cannot imagine
-  the screenshot that proves it, rewrite it.
+  the proof that closes it (a screenshot for UI, a request/response for an API),
+  rewrite it.
+- Group FRs under a heading per component when the project ships several
+  (### Mobile app / ### API / ### Marketing site), and tag each FR with the
+  components it needs — this feeds the `components` field in features.json. An
+  FR whose behavior spans two components stays ONE requirement, written from the
+  user's point of view, not split by implementation layer.
 - Each FR gets a heading anchor (### FR-001 — Title) because features.json
   references docs/product/prd.md#FR-001.
 - Mark unresolved decisions [NEEDS CLARIFICATION: question] and resolve them via

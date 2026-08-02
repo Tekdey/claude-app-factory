@@ -1,20 +1,53 @@
 <!-- TEMPLATE: instructions for the agent filling it.
-Destination: docs/tech/structure.md. Filled by /onboard right after the scaffold
-exists, so the tree below reflects REAL folders. Read before creating any file.
+Destination: docs/tech/structure.md. Drafted by /onboard in Phase 3 from the
+scaffold recipes, then CORRECTED in Phase 5 once the scaffolds exist so the
+trees below reflect REAL folders. One section per component in
+components.json, plus the repo-level map. Read before creating any file.
 The placement rules are the point of this document: an agent with a new file to
 create should find its home here without thinking. Replace every
 {{placeholder}}; delete all comments from the filled instance. -->
 
 # {{app_name}} — Code Structure
 
-## Folder Map
+## Repo Map
 
-<!-- The real tree of app/ after scaffold, annotated. Keep depth ≤ 3; one
-comment per folder saying what belongs there. Example shape for iOS below —
-replace with the actual stack's layout. -->
+<!-- Top level only. Every component from components.json appears under apps/,
+with its scripts under scripts/<id>/ and its conventions in .claude/rules/<id>.md. -->
 
 ```
-app/{{AppName}}/
+apps/
+├── {{component_id}}/           # {{component_kind}} — see its section below
+└── {{other_component_id}}/     # {{other_component_kind}}
+scripts/
+├── format.sh                   # dispatcher → scripts/<id>/format.sh
+├── verify-quick.sh             # dispatcher → every scripts/<id>/verify-quick.sh
+└── {{component_id}}/           # run.sh · test.sh · format.sh · verify-quick.sh
+docs/ · specs/ · evidence/      # conventions in their own READMEs
+```
+
+### Cross-component rules
+
+<!-- The rules that prevent a monorepo from turning into mud. Adapt, keep short. -->
+
+- A component NEVER imports another component's internal files. It calls its
+  published interface (HTTP endpoint, exported package entry point) — the
+  allowed direction is whatever `depends_on` in components.json declares.
+- Shared code lives in its own component (`kind: library`) or is duplicated
+  deliberately; two components quietly reaching into the same relative path is
+  a bug.
+- {{shared_types_rule}} <!-- e.g. "API response types are generated from the
+  OpenAPI spec into each consumer" — or "duplicated by hand, kept in sync by
+  the contract tests in apps/api/tests/contract" -->
+
+## Component: {{component_id}} ({{component_kind}})
+
+<!-- Repeat this whole section for every component. The real tree after
+scaffold, annotated. Keep depth ≤ 3; one comment per folder saying what belongs
+there. Example shape for an iOS component below — replace with the actual
+stack's layout. -->
+
+```
+apps/{{component_id}}/
 ├── {{AppName}}App.{{ext}}      # entry point — composition only, no logic
 ├── Features/                   # one folder per user-facing feature
 │   └── {{FeatureName}}/        # screen(s) + feature-local state + subviews

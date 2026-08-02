@@ -15,23 +15,25 @@ This keeps stack-specific conventions out of the always-on context budget.
 ## Who writes rules here
 
 The template ships **no rules** — only this README. `/onboard` (Phase 5)
-generates stack-specific rule files for the platform chosen during the
-interview, e.g. `swiftui.md` for an iOS app, or `react.md` for a web app.
-You can add or edit rules by hand at any time; they take effect on the next
-session (or when the matching files are next touched).
+generates **one rule file per component** declared in `components.json`, named
+after the component id and scoped to its folder: `.claude/rules/<id>.md` with
+`paths: ["apps/<id>/**"]`. Naming by component rather than by stack means two
+components sharing a framework (a web app and an admin, both React) still get
+their own conventions. You can add or edit rules by hand at any time; they take
+effect on the next session (or when the matching files are next touched).
 
 ## Example
 
-A generated `swiftui.md` looks like this (shown here as an example only —
-do not create it by hand; onboarding writes the real one for your stack):
+A generated `ios.md` looks like this (shown here as an example only — do not
+create it by hand; onboarding writes the real one for each of your components):
 
 ```markdown
 ---
 paths:
-  - "app/**/*.swift"
+  - "apps/ios/**"
 ---
 
-# SwiftUI conventions
+# ios — SwiftUI conventions
 
 - Never hard-code colors, fonts, spacing or radii: use the design tokens
   defined by docs/design/DESIGN.md (DesignTokens.swift).

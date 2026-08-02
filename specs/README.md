@@ -18,7 +18,7 @@ Two tiers, adapted from OpenSpec's living-spec + change-folder model and Kiro's 
 1. `/build-next` picks the next feature and creates `specs/changes/<slug>/` with the three files.
 2. Ambiguities are marked `[NEEDS CLARIFICATION]` in spec.md and resolved with the user before implementation (bounded questions, answers recorded in the clarifications log).
 3. Implementation proceeds task-by-task from tasks.md, checking boxes and committing per logical unit.
-4. `/verify` executes the acceptance scenarios against the real running app and captures evidence to `evidence/F-XXX-<kebab-title>.png`.
+4. `/verify` executes the acceptance scenarios against the real running component(s) and captures evidence to `evidence/F-XXX-<kebab-title>.<ext>` (`.png` for simulator/browser, `.txt` for http/cli).
 5. Once verified: **merge the requirement deltas into `specs/current/`** — add, modify or remove the affected EARS requirements in the relevant capability file (create the file if the capability is new).
 6. Mark the change folder **DONE** in its spec.md header. **Archive-in-place**: the folder stays exactly where it is, as permanent history. Nothing is moved or deleted.
 

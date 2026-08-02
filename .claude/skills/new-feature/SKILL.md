@@ -11,15 +11,16 @@ Conduct all interaction with the user in the user's language (detect from their 
 
 Gate: if `docs/constitution.md` does not exist, onboarding has not run — refuse politely and point to `/onboard`.
 
-## 1. Mini-interview (max 5 questions)
+## 1. Mini-interview (max 5 questions — merge the closest two if all six apply)
 
 Treat `$ARGUMENTS`, if provided, as the initial feature description. Use AskUserQuestion when available (concrete options with a recommended default); otherwise numbered questions with lettered options in chat. Skip anything the description already answers. Every question offers "You decide" — if chosen, decide and record your rationale.
 
 1. **What** — the user-observable behavior, in one testable sentence?
 2. **Who benefits** — which persona from `docs/product/personas.md` (or a new one)?
-3. **Priority** — P1 / P2 / P3 relative to the existing roadmap?
-4. **Scope** — in v1, or post-launch (v1.x)?
-5. **Success signal** — how will we observe that it works? (feeds the acceptance scenarios)
+3. **Which component(s)** — read `components.json` and offer its ids; a feature may span several (e.g. app + API), first one = where evidence gets captured. If the idea needs a deliverable that does not exist yet (a marketing site, an admin), say so and point to `/onboard` → "Add a component" — do not invent a component here.
+4. **Priority** — P1 / P2 / P3 relative to the existing roadmap?
+5. **Scope** — in v1, or post-launch (v1.x)?
+6. **Success signal** — how will we observe that it works? (feeds the acceptance scenarios — phrase it in terms of the first component's `verify` method: a visible screen state, an HTTP response, a command output)
 
 Reflect a 2-line summary back to the user before writing anything.
 
@@ -45,6 +46,7 @@ Read the Non-Goals section of `docs/product/prd.md` and the non-goals article of
       "id": "F-001",
       "title": "short name",
       "description": "user-observable behavior, testable",
+      "components": ["ios"],
       "source": "docs/product/prd.md#FR-001",
       "priority": "P1",
       "passes": false,
@@ -54,7 +56,7 @@ Read the Non-Goals section of `docs/product/prd.md` and the non-goals article of
 }
 ```
 
-New entries always start with `"passes": false` and `"evidence": null`; `source` anchors to the FR you just added (e.g. `docs/product/prd.md#FR-023`). Validate the file after editing (`jq . features.json`).
+New entries always start with `"passes": false` and `"evidence": null`; `components` holds ids that exist in `components.json`; `source` anchors to the FR you just added (e.g. `docs/product/prd.md#FR-023`). Validate the file after editing (`jq . features.json`).
 
 ## 4. Record and hand off
 
@@ -64,7 +66,7 @@ New entries always start with `"passes": false` and `"evidence": null`; `source`
 
 ## Rules
 
-- This skill never touches `app/` code and never creates `specs/changes/` folders — the spec/plan/tasks trio is `/build-next`'s job, done at build time (slug `F-XXX-kebab-title`).
+- This skill never touches `apps/` code and never creates `specs/changes/` folders — the spec/plan/tasks trio is `/build-next`'s job, done at build time (slug `F-XXX-kebab-title`).
 - One feature per invocation; several ideas → run the skill once per idea.
 - Do not edit `templates/` files — copy their structure into the instance documents.
 - Do not flip any existing `passes` flag or modify existing ledger entries.

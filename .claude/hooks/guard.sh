@@ -67,8 +67,11 @@ if matches_no_example '>>?[[:space:]]*(\./)?\.env(\.[A-Za-z0-9_-]+)?([[:space:]]
   deny ".env files must never be written by the agent. Tell the user which key to add and let them edit .env themselves (.env.example is the documented exception)."
 fi
 
-# 7. Reading .env through common readers
-if matches_no_example '(^|[;&|[:space:]"])(cat|grep|egrep|fgrep|head|tail|less|more)[[:space:]][^;&|]*\.env(\.[A-Za-z0-9_-]+)?([[:space:]]|$|[;&|)"])'; then
+# 7. Reading .env through common readers.
+# The char right before `.env` must be a path boundary (space, quote or slash),
+# so a search PATTERN that merely mentions .env — grep "Read(.env" settings.json
+# — is not mistaken for an actual read of the file.
+if matches_no_example '(^|[;&|[:space:]"])(cat|grep|egrep|fgrep|head|tail|less|more)([[:space:]][^;&|]*)?[[:space:]"/]\.env(\.[A-Za-z0-9_-]+)?([[:space:]]|$|[;&|)"])'; then
   deny ".env files contain secrets and must never be read. Use .env.example to know which keys exist."
 fi
 

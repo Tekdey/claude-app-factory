@@ -49,8 +49,8 @@ Ground rules for every document:
 ## 4. docs/product/prd.md
 
 - **Template**: `templates/docs/prd.md`
-- **Inputs**: brief.md, personas.md, Q-P3 (scope), Q-T4 (compliance → NFRs),
-  Q-V4 (naming), open items from the interview.
+- **Inputs**: brief.md, personas.md, Q-P3 (scope), Q-S1 (components),
+  Q-T4 (compliance → NFRs), Q-V4 (naming), open items from the interview.
 - **Quality bar**:
   - Every functional requirement is EARS-formatted and testable:
     `WHEN <trigger> THE SYSTEM SHALL <behavior>` (+ IF/WHILE/WHERE variants),
@@ -59,26 +59,85 @@ Ground rules for every document:
   - **Non-Goals section is mandatory** and lists Q-P3's out-of-scope items.
   - **No tech choices inside the PRD** — the PRD says WHAT, never which
     framework/database/service.
+  - **One PRD for the whole product**, never one per component: the value
+    proposition is shared. Group FRs under a heading per component when the
+    project ships several (`### Mobile app`, `### API`, `### Marketing site`),
+    and tag each FR with the component ids it needs — this is what feeds the
+    `components` field of every features.json entry. An FR whose behavior spans
+    two components stays ONE requirement, described from the user's point of
+    view.
   - Open Questions section holds anything genuinely undecided; Clarifications
     log table (date / question / answer) starts with any Phase 1 "You decide"
     calls worth recording.
 
-## 5. docs/product/roadmap.md
+## 5. components.json (repo root)
+
+- **Model file**: `templates/components.example.json` (schema reference — do not
+  copy its example content).
+- **Inputs**: Q-S1 (what ships), Q-S2 (primary), Q-S3 (wiring), Q-T1 (stack per
+  component).
+- **Schema** (exact — `/build-next`, `/verify`, `/status` and the scaffold all
+  parse this):
+
+```json
+{
+  "$comment": "Component manifest — every deliverable this project ships.",
+  "components": [
+    {
+      "id": "api",
+      "name": "human-readable name",
+      "kind": "mobile-app | web-app | marketing-site | api | admin | cli | library",
+      "stack": "Express 5 · TypeScript · PostgreSQL",
+      "path": "apps/api",
+      "run": "scripts/api/run.sh",
+      "verify": "simulator | browser | http | cli | none",
+      "primary": false,
+      "depends_on": []
+    }
+  ]
+}
+```
+
+- **Construction rules**:
+  - One entry per component from Q-S1, **including components deferred to a
+    later phase** — the architecture must account for them now.
+  - `id`: short kebab-case, unique, stable (it appears in `apps/<id>/`,
+    `scripts/<id>/`, `.claude/rules/<id>.md` and every features.json entry).
+  - `path` is always `apps/<id>` and `run` is always `scripts/<id>/run.sh` — no
+    exceptions, so every command can compute them from the id alone.
+  - `verify` follows the kind: `mobile-app` → `simulator` (or `browser` for a
+    PWA), `web-app`/`marketing-site`/`admin` → `browser`, `api` → `http`,
+    `cli` → `cli`, `library` → `none` (proven by its unit tests).
+  - Exactly one component has `"primary": true` (Q-S2; the only one if there is
+    a single component).
+  - `depends_on` lists component ids this one calls at runtime (Q-S3). No
+    cycles — if two components need each other, extract the shared part or
+    record why in an ADR.
+  - Validate before committing: `jq . components.json`.
+
+## 6. docs/product/roadmap.md
 
 - **Template**: `templates/docs/roadmap.md`
-- **Inputs**: prd.md, Q-B5 (timeline), Q-T5 (priorities).
+- **Inputs**: prd.md, components.json, Q-B5 (timeline), Q-T5 (priorities).
 - **Quality bar**: phased — **v0.1 walking skeleton** (the thinnest end-to-end
   slice that launches, shows real data and proves the architecture; typically
   3–6 features), **v1** (launch scope = the Q-P3 must-haves), **v1.x**
   (post-launch). Each phase: goal, feature ids (matching features.json), exit
   criteria. Every PRD FR maps into a phase or is explicitly deferred.
+- **Multi-component ordering**: the walking skeleton must cut through **all**
+  v1 components — one thin slice proving app ↔ API ↔ site actually wire
+  together beats three polished components that have never talked to each
+  other. Within a phase, order features by `depends_on` (a component others
+  depend on ships its part first). A component deferred to a later phase gets
+  its own phase entry so it is never silently forgotten.
 
-## 6. docs/tech/tech-stack.md + ADRs
+## 7. docs/tech/tech-stack.md + ADRs
 
 - **Templates**: `templates/docs/tech-stack.md`, `templates/docs/adr.md`
 - **Inputs**: Q-T1…T5, `./init.sh doctor` results, imposed services (Q-T3).
-- **Quality bar**: table layer / choice / version / why / ADR link; local dev
-  commands section matches the scripts that Phase 5 will create; key-libraries
+- **Quality bar**: **one table per component** (layer / choice / version / why /
+  ADR link), in `components.json` order; local dev commands section lists each
+  component's `scripts/<id>/` entry points as Phase 5 will create them; key-libraries
   policy (prefer boring, check context7 docs before adding a dependency).
 - **ADRs**: one per major choice, `docs/adr/NNNN-title.md`, 4-digit numbering
   starting `0001`, MADR format from the template. **ADR triggers** — write one
@@ -88,36 +147,45 @@ Ground rules for every document:
   Imposed services (Q-T3b) still get an ADR with status "accepted (imposed by
   owner)". Add each ADR to the index table in `docs/adr/README.md`.
 
-## 7. docs/tech/architecture.md
+## 8. docs/tech/architecture.md
 
 - **Template**: `templates/docs/architecture.md`
 - **Inputs**: tech-stack.md, Q-T2 (accounts/sync/offline), Q-T4 (security).
-- **Quality bar**: system context diagram (mermaid) that actually reflects the
-  chosen stack; main modules; data flow; state management pattern (named — the
+- **Quality bar**: system context diagram (mermaid) showing **every component**
+  from `components.json` and the calls between them (Q-S3 wiring), plus any
+  external service; per-component module breakdown; data flow; state management pattern (named — the
   stack rule file in Phase 5 will reference it); sync/offline strategy matching
   Q-T2; error handling strategy consistent with voice.md's error register;
   security notes covering Q-T4's answer.
 
-## 8. docs/tech/structure.md
+## 9. docs/tech/structure.md
 
 - **Template**: `templates/docs/structure.md`
-- **Inputs**: architecture.md, the scaffold layout Phase 5 will create.
-- **Quality bar**: file/folder map of `app/` with placement rules ("new feature
-  screens go in …"), naming conventions, import rules. Must match what the
-  scaffold recipe actually creates — write it against
-  `.claude/skills/onboard/references/scaffold.md` for the chosen platform.
+- **Inputs**: architecture.md, components.json, the scaffold layout Phase 5 will
+  create. Draft it here, then **re-open it at the end of Phase 5** and correct
+  any folder the real scaffold named differently — a structure.md that lies
+  about the tree is worse than none.
+- **Quality bar**: one folder map per component (`apps/<id>/`) with placement
+  rules ("new feature screens go in …"), naming conventions, import rules, plus
+  a top-level map of the repo showing `apps/`, `scripts/` and what may import
+  what across components. Must match what the scaffold recipe actually creates —
+  write it against `.claude/skills/onboard/references/scaffold.md` for each
+  chosen stack.
 
-## 9. docs/tech/testing.md
+## 10. docs/tech/testing.md
 
 - **Template**: `templates/docs/testing.md`
-- **Inputs**: Q-T5 (coverage priority), platform (verification MCP).
-- **Quality bar**: test pyramid for agents (unit on logic, snapshot where
-  cheap, E2E acceptance scenarios via MCP = source of truth); what NOT to test;
-  how `evidence/` works, including the evidence filename convention
-  `evidence/F-XXX-<kebab-title>.png`; deterministic-mode requirements (seeded data,
-  animations-off flag) so `/verify` runs are reproducible.
+- **Inputs**: Q-T5 (coverage priority), each component's `verify` method.
+- **Quality bar**: test pyramid for agents (unit on logic, snapshot where cheap,
+  E2E acceptance scenarios = source of truth); what NOT to test; **a section per
+  `verify` method** stating how proof is captured — `simulator`/`browser` →
+  `.png` screenshot at the assertion moment, `http` → `.txt` transcript of
+  requests and responses, `cli` → `.txt` transcript of commands and output;
+  the evidence filename convention `evidence/F-XXX-<kebab-title>.<ext>`;
+  deterministic-mode requirements (seeded data, animations-off flag, fixed
+  clock, test database) so `/verify` runs are reproducible.
 
-## 10. features.json (repo root)
+## 11. features.json (repo root)
 
 - **Model file**: `templates/features.example.json` (schema reference — do not
   copy its example content).
@@ -131,6 +199,7 @@ Ground rules for every document:
       "id": "F-001",
       "title": "short name",
       "description": "user-observable behavior, testable",
+      "components": ["ios"],
       "source": "docs/product/prd.md#FR-001",
       "priority": "P1",
       "passes": false,
@@ -144,17 +213,25 @@ Ground rules for every document:
   - Source of truth: PRD FRs + roadmap phases. Every FR yields one or more
     features; every feature's `source` points at its FR anchor
     (`docs/product/prd.md#FR-001`).
-  - **Granularity**: one feature = one independently verifiable, user-visible
-    behavior. If you can't screenshot it passing, it's not a feature (split
-    infra work into the feature that first needs it). If it takes more than
-    one session, split it.
-  - 15–40 features is the typical healthy range for a v1 app.
-  - `id`: `F-001…` sequential, ordered by roadmap phase then priority.
+  - **Granularity**: one feature = one independently verifiable behavior. If you
+    can't capture proof of it passing (screenshot for UI, request transcript for
+    an API), it's not a feature — fold infra work into the feature that first
+    needs it. If it takes more than one session, split it.
+  - `components`: the component ids it touches, **first = where evidence is
+    captured**. A feature spanning app + API lists both (`["ios", "api"]`) and
+    is proven end-to-end through the UI. Prefer splitting when each half is
+    independently valuable (an API endpoint usable on its own gets its own
+    feature).
+  - 15–40 features is the typical healthy range for a v1 single-component app;
+    expect 25–60 across a multi-component project.
+  - `id`: `F-001…` sequential, ordered by roadmap phase, then by dependency
+    (`depends_on` first — the API endpoint before the screen consuming it),
+    then priority.
   - `priority` from roadmap phase: v0.1 walking skeleton → `P1`, v1 → `P2`,
     post-launch → `P3`.
   - Every entry starts `"passes": false, "evidence": null`. **Only** `/verify`
     evidence (a file in `evidence/`) ever flips `passes` to true — never here.
-  - Validate before committing: `jq . features.json`.
+  - Validate before committing: `jq . features.json` and `jq . components.json`.
 
 ---
 

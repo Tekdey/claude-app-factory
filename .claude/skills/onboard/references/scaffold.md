@@ -1,46 +1,72 @@
 # Setup recipes (Phase 5)
 
-Everything in this file is parameterized by the platform chosen in Q-T1.
-Substitute `{{AppName}}` (PascalCase app name), `{{app-slug}}` (lowercase,
+Everything here is driven by **`components.json`** (written in Phase 3): you run
+each step once per component, in `depends_on` order (dependencies first).
+
+Substitute `{{AppName}}` (PascalCase product name), `{{app-slug}}` (lowercase,
 hyphen-free) and `{{BUNDLE_ID}}` before writing any file. Default bundle id:
 `com.{{app-slug}}.app` — if the user mentioned an Apple Developer account or a
 company domain, use their reverse-DNS prefix instead (one quick confirmation,
 don't interview again).
 
-Order of operations: **1** `.mcp.json` → **2** app scaffold → **3** scripts →
-**4** `.env.example` → **5** stack rule file → **6** CLAUDE.md identity line.
+**Invariants that every command relies on — never deviate:**
+
+| Thing | Path |
+|---|---|
+| Component source | `apps/<id>/` |
+| Component scripts | `scripts/<id>/{run,test,format,verify-quick}.sh` |
+| Root dispatchers (called by hooks) | `scripts/format.sh`, `scripts/verify-quick.sh` |
+| Component rule file | `.claude/rules/<id>.md` with `paths: ["apps/<id>/**"]` |
+
+Order of operations: **1** `.mcp.json` → **2** scaffolds → **3** scripts →
+**4** `.env.example` → **5** rule files → **6** CLAUDE.md identity line.
 
 ---
 
 ## 1. Assemble .mcp.json
 
-1. Pick the variant for the platform:
-   - iOS native → `templates/mcp/ios.json`
-   - Web → `templates/mcp/web.json`
-   - Cross-platform Expo → `templates/mcp/cross-platform.json`
-2. Copy its content to `.mcp.json` at the repo root (overwrite — the template
-   ships the iOS variant by default).
-3. If a backend was chosen (Q-T3 / ADRs): open `templates/mcp/backends.md`,
-   copy the matching server block (Supabase / Convex / GitHub) into the
-   `mcpServers` object. Follow that file's guidance notes (version pinning,
-   timeouts).
-4. Keep the `context7` entry that every variant already contains — it is the
-   documentation lookup and must survive assembly.
-5. Add nothing else. Context hygiene: every extra MCP server costs tokens in
-   every future session.
-6. Validate: `jq . .mcp.json` must succeed.
+Collect the servers **every** component needs, merge them into one
+`mcpServers` object, and write it to `.mcp.json` at the repo root (overwrite —
+the template ships the iOS variant by default).
+
+| Component `verify` | Source variant | Server |
+|---|---|---|
+| `simulator` (native iOS) | `templates/mcp/ios.json` | XcodeBuildMCP |
+| `simulator` (Expo/RN) | `templates/mcp/cross-platform.json` | mobile-mcp |
+| `browser` | `templates/mcp/web.json` | Playwright |
+| `http`, `cli`, `none` | — | none needed (Bash covers it) |
+
+Rules:
+
+1. Merge, don't concatenate: one `mcpServers` object, unique keys. A project
+   with an iOS app **and** a marketing site gets XcodeBuildMCP **and**
+   Playwright — that is expected, not bloat.
+2. Keep the `context7` entry exactly once — it is the documentation lookup and
+   must survive the merge.
+3. If a backend was chosen (Q-T3 / ADRs): open `templates/mcp/backends.md` and
+   copy the matching block (Supabase / Convex / GitHub) into the same object.
+   Follow that file's notes on version pinning and timeouts.
+4. Add nothing else. Every extra server costs tokens in every future session.
+5. Validate: `jq . .mcp.json` must succeed.
 
 **Changes take effect only after the user restarts Claude Code and approves the
 servers** — Phase 6 handles that handoff.
 
-## 2. Scaffold the app in app/
+## 2. Scaffold each component in apps/<id>/
 
-`app/` must not exist yet (fresh template). If it does, stop and ask.
+Create `apps/` if needed (`mkdir -p apps`). Each component's own folder,
+`apps/<id>/`, must not exist yet — if it does, that component is already
+scaffolded: skip it and say so rather than overwriting. (This is what makes the
+"Add a component" re-run safe: existing components are left untouched.)
 
-### iOS native (SwiftUI)
+Run the recipe matching each component's `kind` + stack. After each scaffold,
+launch it once locally to confirm it starts, then move to the next (proof
+capture happens in Phase 6).
 
-Target layout: `app/{{AppName}}/{{AppName}}.xcodeproj` + sources in
-`app/{{AppName}}/{{AppName}}/`.
+### mobile-app · iOS native (SwiftUI) → `apps/<id>/`
+
+Target layout: `apps/<id>/{{AppName}}.xcodeproj` + sources in
+`apps/<id>/{{AppName}}/`.
 
 Preferred routes, in order:
 
@@ -50,78 +76,181 @@ Preferred routes, in order:
 2. **Xcode GUI (most reliable fallback)** — ask the user to do it once by
    hand: Xcode → New Project → iOS App, Product Name `{{AppName}}`, Bundle
    Identifier `{{BUNDLE_ID}}`, Interface SwiftUI, Language Swift, Storage
-   None, save into `app/`. Takes them under a minute; wait, then verify.
+   None, save into `apps/<id>/`. Takes them under a minute; wait, then verify.
 3. **Manual project files** — last resort: write a minimal SwiftUI app
    (`{{AppName}}App.swift` with `@main` App struct, `ContentView.swift`,
    `Assets.xcassets`) plus a minimal `project.pbxproj`. The pbxproj format is
    plain text but unforgiving — only attempt if routes 1 and 2 are impossible,
    and verify immediately with a build.
 
-Whatever the route, verify before moving on:
+Verify before moving on:
 
 ```bash
-xcodebuild -project "app/{{AppName}}/{{AppName}}.xcodeproj" -scheme "{{AppName}}" \
+xcodebuild -project "apps/<id>/{{AppName}}.xcodeproj" -scheme "{{AppName}}" \
   -destination "platform=iOS Simulator,name=iPhone 16" -derivedDataPath build -quiet build
 ```
 
 (If "iPhone 16" doesn't exist, pick a device from
 `xcrun simctl list devices available`, and use that name in the scripts below.)
 
-### Cross-platform (Expo / React Native)
+### mobile-app · cross-platform (Expo / React Native) → `apps/<id>/`
 
 ```bash
-npx create-expo-app@latest app --template blank-typescript
+npx create-expo-app@latest apps/<id> --template blank-typescript
 ```
 
-Then, inside `app/`:
+Then, inside `apps/<id>/`:
 
-- Add jest so `scripts/test.sh` works:
-  `npx expo install jest-expo jest @types/jest` and add
-  `"test": "jest --ci"` + `"jest": { "preset": "jest-expo" }` to package.json.
-- Note for the user (goes in the final recap): **no Mac needed** for device
-  builds — `npx eas build` compiles iOS/Android in Expo's cloud. Local
-  simulator run (Mac only): `npx expo run:ios` or Expo Go via `npx expo start`.
+- Add jest so the test script works: `npx expo install jest-expo jest @types/jest`
+  and add `"test": "jest --ci"` + `"jest": { "preset": "jest-expo" }` to package.json.
+- Note for the final recap: **no Mac needed** for device builds —
+  `npx eas build` compiles iOS/Android in Expo's cloud. Local simulator run
+  (Mac only): `npx expo run:ios` or Expo Go via `npx expo start`.
 
-### Web (Vite or Next.js)
+### web-app → `apps/<id>/`
 
-- Default (SPA / app-like product): `npm create vite@latest app -- --template react-ts`
-- If SEO/SSR genuinely matters (content-heavy, public pages):
-  `npx create-next-app@latest app --ts --app --no-src-dir` (record the choice
-  in the tech-stack ADR either way).
-- Add vitest so `scripts/test.sh` works:
-  `cd app && npm i -D vitest` and add `"test": "vitest run"` to package.json.
-- Playwright note: browser automation comes from the Playwright **MCP server**
-  (`templates/mcp/web.json`), which manages its own browser install on first
-  run — do not add Playwright as an app dependency for verification.
+- Next.js (SEO/SSR matters): `npx create-next-app@latest apps/<id> --ts --app --no-src-dir`
+- Vite + React (SPA behind a login): `npm create vite@latest apps/<id> -- --template react-ts`,
+  then `npm i -D vitest` and add `"test": "vitest run"` to package.json.
+- Browser automation comes from the Playwright **MCP server**, which manages its
+  own browser install — do not add Playwright as an app dependency.
 
-After any scaffold: launch it once locally to confirm it starts, then move on
-(the screenshot proof happens in Phase 6).
+### marketing-site → `apps/<id>/`
+
+```bash
+npm create astro@latest apps/<id> -- --template minimal --typescript strict --no-install --no-git
+cd apps/<id> && npm install
+```
+
+- Astro is the default because a landing page should ship near-zero JS; it also
+  keeps the marketing surface independent from the product's app framework.
+- Wire the primary CTA to the real destination as soon as it exists (App Store
+  URL, or the web app's sign-up route) — leave a single, clearly named constant
+  for it rather than scattering the link.
+- If the user chose Next.js instead (shared components with an existing web
+  app), use the web-app recipe and record the reason in the tech-stack ADR.
+
+### api → `apps/<id>/`
+
+```bash
+mkdir -p apps/<id>/src && cd apps/<id>
+npm init -y
+npm i express
+npm i -D typescript tsx vitest supertest @types/express @types/node @types/supertest
+npx tsc --init --rootDir src --outDir dist --strict --module nodenext --moduleResolution nodenext --target es2022
+```
+
+Then in `apps/<id>/package.json` set `"type": "module"` and the scripts:
+`"dev": "tsx watch src/server.ts"`, `"build": "tsc"`, `"test": "vitest run"`,
+`"typecheck": "tsc --noEmit"`.
+
+Minimum viable server (`src/server.ts`) exposing a health route the agent can
+verify immediately:
+
+```ts
+import express from "express";
+
+export const app = express();
+app.use(express.json());
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+const port = Number(process.env.PORT ?? 3000);
+if (process.env.NODE_ENV !== "test") {
+  app.listen(port, () => console.log(`listening on :${port}`));
+}
+```
+
+Export `app` separately from `listen` so `supertest` can drive it in-process —
+that is what makes `verify: http` fast and deterministic.
+
+Datastore: follow the ADR. PostgreSQL → add the driver plus a migration tool and
+document the connection env var in `.env.example`. SQLite → a file under
+`apps/<id>/data/` with the path in `.env.example` and the file gitignored.
+
+### admin → `apps/<id>/`
+
+Same recipe as `web-app`, sharing the design tokens. Keep it a separate
+component (separate deploy, separate auth surface) unless the user asked for a
+route inside the main web app.
+
+### cli → `apps/<id>/`
+
+Node + TypeScript with a `bin` entry in package.json, or the language of the
+component it serves. Must print `--help` and exit 0 — that is its smoke test.
+
+### library → `apps/<id>/`
+
+Plain package with the stack's standard layout, `verify: none` (its unit tests
+are the proof). Consumers import it via a workspace reference; record that in
+`architecture.md`.
 
 ## 3. Create scripts/
 
-Write the four scripts below for the chosen stack, then:
+Two layers: **per-component** scripts holding the real commands, and two **root
+dispatchers** that the hooks call.
 
 ```bash
-chmod +x scripts/run.sh scripts/format.sh scripts/test.sh scripts/verify-quick.sh
-bash -n scripts/*.sh
+mkdir -p scripts/<id>            # one per component
+chmod +x scripts/*.sh scripts/*/*.sh
+bash -n scripts/*.sh scripts/*/*.sh
 ```
 
-Contract (see `scripts/README.md`): hooks call these if present; each exits
-non-zero on failure; `verify-quick.sh` must stay under 60 seconds.
+Contract (see `scripts/README.md`): each script exits non-zero on failure;
+`verify-quick.sh` must stay under 60 seconds **in total** across components.
 
-### iOS scripts
+### Root dispatchers (write these verbatim, they are stack-independent)
 
-`scripts/run.sh`:
+`scripts/format.sh` — the post-edit hook passes it the edited file path:
+
+```bash
+#!/usr/bin/env bash
+# Route a file to its component's formatter. Called by .claude/hooks/post-edit.sh.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+target="${1:-}"
+[ -n "$target" ] || exit 0
+# The hook passes an ABSOLUTE path — reduce it to a repo-relative one first.
+target="${target#"$PWD"/}"
+case "$target" in
+  apps/*) id="${target#apps/}"; id="${id%%/*}" ;;
+  *) exit 0 ;;
+esac
+fmt="scripts/${id}/format.sh"
+[ -x "$fmt" ] || exit 0
+"$fmt" "$target"
+```
+
+`scripts/verify-quick.sh` — the Stop hook gate:
+
+```bash
+#!/usr/bin/env bash
+# Fast sanity gate across every component. Called by .claude/hooks/stop-gate.sh.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+status=0
+for script in scripts/*/verify-quick.sh; do
+  [ -x "$script" ] || continue
+  if ! "$script"; then
+    echo "verify-quick failed: $script" >&2
+    status=1
+  fi
+done
+exit "$status"
+```
+
+### iOS component scripts
+
+`scripts/<id>/run.sh`:
 
 ```bash
 #!/usr/bin/env bash
 # Build the app and launch it in the iOS simulator.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 APP_NAME="{{AppName}}"
 BUNDLE_ID="{{BUNDLE_ID}}"
 SIMULATOR="${SIMULATOR:-iPhone 16}"
-xcodebuild -project "app/${APP_NAME}/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
+xcodebuild -project "apps/<id>/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
   -destination "platform=iOS Simulator,name=${SIMULATOR}" \
   -derivedDataPath build -quiet build
 xcrun simctl boot "$SIMULATOR" >/dev/null 2>&1 || true
@@ -131,167 +260,123 @@ xcrun simctl install booted "$APP_PATH"
 xcrun simctl launch booted "$BUNDLE_ID"
 ```
 
-`scripts/format.sh`:
+`scripts/<id>/format.sh`:
 
 ```bash
 #!/usr/bin/env bash
-# Format Swift sources. The post-edit hook calls this with the edited file path;
-# with no argument it formats all of app/.
+# Format Swift sources; receives one file path, or defaults to the component.
 set -euo pipefail
-cd "$(dirname "$0")/.."
-TARGET="${1:-app/}"
+cd "$(dirname "$0")/../.."
+TARGET="${1:-apps/<id>/}"
 case "$TARGET" in
-  *.swift) ;;
-  app/) ;;
+  *.swift|apps/<id>/) ;;
   *) exit 0 ;;
 esac
 command -v swiftformat >/dev/null 2>&1 || exit 0
 swiftformat "$TARGET" --quiet
 ```
 
-`scripts/test.sh`:
+`scripts/<id>/test.sh`:
 
 ```bash
 #!/usr/bin/env bash
-# Full test suite on the simulator.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 APP_NAME="{{AppName}}"
-xcodebuild -project "app/${APP_NAME}/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
+xcodebuild -project "apps/<id>/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
   -destination "platform=iOS Simulator,name=${SIMULATOR:-iPhone 16}" \
   -derivedDataPath build -quiet test
 ```
 
-`scripts/verify-quick.sh`:
+`scripts/<id>/verify-quick.sh`: same as `test.sh` with `build` instead of
+`test` — does it still compile? (First run is slow; incremental builds against
+the cached `build/` derived data stay well under 60s.)
+
+### Expo component scripts
 
 ```bash
-#!/usr/bin/env bash
-# Fast sanity gate (< 60s incremental): does it still compile?
-set -euo pipefail
-cd "$(dirname "$0")/.."
-APP_NAME="{{AppName}}"
-xcodebuild -project "app/${APP_NAME}/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
-  -destination "platform=iOS Simulator,name=${SIMULATOR:-iPhone 16}" \
-  -derivedDataPath build -quiet build
+# run.sh — dev server + simulator on macOS, Expo Go elsewhere
+cd "$(dirname "$0")/../../apps/<id>"
+if [ "$(uname)" = "Darwin" ]; then npx expo start --ios; else npx expo start; fi
 ```
 
-(First run is slow; incremental builds against the cached `build/` derived data
-stay well under 60s. If tests are ever fast enough, tighten this later.)
+`test.sh` → `npm test`; `verify-quick.sh` → `npx tsc --noEmit`;
+`format.sh` → `npx prettier --write --ignore-unknown --log-level warn "$TARGET"`
+guarded by `case "$TARGET" in apps/<id>/*|apps/<id>/) ;; *) exit 0 ;; esac`.
+Every component script starts with `#!/usr/bin/env bash` and `set -euo pipefail`;
+`run.sh`/`test.sh`/`verify-quick.sh` then `cd` into the component
+(`cd "$(dirname "$0")/../../apps/<id>"`), while `format.sh` stays at the repo
+root (`cd "$(dirname "$0")/../.."`) because it receives repo-relative paths.
 
-### Expo scripts
-
-`scripts/run.sh`:
+### web-app / marketing-site / admin component scripts
 
 ```bash
-#!/usr/bin/env bash
-# Start the dev server and open the app on the iOS simulator (Mac) —
-# on other hosts, run without --ios and use Expo Go or an EAS build.
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-if [ "$(uname)" = "Darwin" ]; then
-  npx expo start --ios
-else
-  npx expo start
-fi
+# run.sh — dev server (foreground; agents run it in the background)
+cd "$(dirname "$0")/../../apps/<id>" && npm run dev
 ```
 
-`scripts/format.sh`:
+`test.sh` → `npm test`; `verify-quick.sh` → `npx tsc --noEmit` (Astro:
+`npx astro check`); `format.sh` → prettier, scoped exactly like the Expo one.
+
+### api component scripts
 
 ```bash
-#!/usr/bin/env bash
-# Format sources. The post-edit hook calls this with the edited file path;
-# with no argument it formats all of app/.
-set -euo pipefail
-cd "$(dirname "$0")/.."
-TARGET="${1:-app/}"
-case "$TARGET" in
-  app/*|app/) ;;
-  *) exit 0 ;;
-esac
-npx prettier --write --ignore-unknown --log-level warn "$TARGET"
+# run.sh
+cd "$(dirname "$0")/../../apps/<id>" && npm run dev
 ```
 
-`scripts/test.sh`:
+`test.sh` → `npm test` (vitest + supertest); `verify-quick.sh` →
+`npx tsc --noEmit`; `format.sh` → prettier, scoped to `apps/<id>/`.
+
+### cli / library component scripts
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-npm test
+# run.sh — for a CLI, running it with --help IS its smoke test
+cd "$(dirname "$0")/../../apps/<id>" && npm start -- --help
 ```
 
-`scripts/verify-quick.sh`:
-
-```bash
-#!/usr/bin/env bash
-# Fast sanity gate (< 60s): typecheck only.
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-npx tsc --noEmit
-```
-
-### Web scripts
-
-`scripts/run.sh`:
-
-```bash
-#!/usr/bin/env bash
-# Start the dev server (foreground — agents should run it in the background).
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-npm run dev
-```
-
-`scripts/format.sh`: same as the Expo version above (prettier,
-`--ignore-unknown`, scoped to `app/`).
-
-`scripts/test.sh`:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-npm test
-```
-
-`scripts/verify-quick.sh`:
-
-```bash
-#!/usr/bin/env bash
-# Fast sanity gate (< 60s): typecheck only.
-set -euo pipefail
-cd "$(dirname "$0")/../app"
-npx tsc --noEmit
-```
+`test.sh` → `npm test` (a library's test suite is its only proof: `verify: none`);
+`verify-quick.sh` → `npx tsc --noEmit`; `format.sh` → prettier, scoped to
+`apps/<id>/`. A `library` component has no meaningful `run.sh`: write one that
+prints a one-line explanation and exits 0, so `./init.sh start <id>` stays
+predictable.
 
 ## 4. Append to .env.example
 
-Append only the key **names** the chosen stack/backend actually needs, each
-with a one-line comment — never a real value, and never touch `.env` itself
-(reading it is denied by permissions, by design). Examples:
+Append only the key **names** each component actually needs, grouped by
+component with a comment header, never a real value — and never touch `.env`
+itself (reading it is denied by permissions, by design):
 
 ```
-# Supabase project ref (backend chosen at onboarding) — dashboard > project settings
-SUPABASE_PROJECT_REF=
+# --- api ---
+# Postgres connection string (see docs/adr/0003-datastore.md)
+DATABASE_URL=
+# Port the API listens on (defaults to 3000)
+PORT=
+
+# --- ios ---
+# Base URL the app calls in development
+API_BASE_URL=
 ```
 
 `CONTEXT7_API_KEY` and `SUPABASE_PROJECT_REF` may already be present from the
 template — don't duplicate lines that exist.
 
-## 5. Generate the stack rule file in .claude/rules/
+## 5. Generate one rule file per component
 
 Path-scoped rules load only when matching files are edited (see
-`.claude/rules/README.md`). Write exactly one rule file for the stack, adapting
-the state-management and folder names to what `docs/tech/architecture.md` and
-`docs/tech/structure.md` actually say.
+`.claude/rules/README.md`). Write **one file per component**, named
+`.claude/rules/<id>.md`, so two components sharing a stack still get their own
+scoped conventions. Adapt state-management and folder names to what
+`docs/tech/architecture.md` and `docs/tech/structure.md` actually say.
 
-### iOS → `.claude/rules/swiftui.md`
+### iOS component
 
 ```markdown
 ---
-paths: ["app/**/*.swift"]
+paths: ["apps/<id>/**"]
 ---
-# SwiftUI conventions
+# <id> — SwiftUI conventions
 
 - One primary View per file; file name matches the type name.
 - Screens go in `Screens/`, reusable views in `Components/`, models in
@@ -307,15 +392,17 @@ paths: ["app/**/*.swift"]
 - Async work uses structured concurrency (`.task`); never block the main actor.
 - Errors surface per voice.md (what happened + why + next step) — no bare `print`.
 - Motion follows DESIGN.md §7 and respects Reduce Motion.
+- Network calls go through the single API client; base URL from configuration,
+  never hardcoded.
 ```
 
-### Expo → `.claude/rules/react-native.md`
+### Expo component
 
 ```markdown
 ---
-paths: ["app/**/*.ts", "app/**/*.tsx"]
+paths: ["apps/<id>/**"]
 ---
-# Expo / React Native conventions
+# <id> — Expo / React Native conventions
 
 - TypeScript strict; no `any` without a justifying comment.
 - Screens follow the router convention in docs/tech/structure.md; shared UI in
@@ -326,20 +413,19 @@ paths: ["app/**/*.ts", "app/**/*.tsx"]
   drives the accessibility tree, not pixels.
 - State management follows docs/tech/architecture.md; keep server/local state
   separation explicit.
-- Lists use `FlatList`/`FlashList` with stable keys — never map over arrays in
-  scrollviews for long content.
+- Lists use `FlatList`/`FlashList` with stable keys.
 - Handle safe areas and keyboard avoidance on every screen.
 - Errors surface per voice.md (what happened + why + next step).
 - Animations respect the motion rules of DESIGN.md §7 and Reduce Motion.
 ```
 
-### Web → `.claude/rules/react.md`
+### web-app / marketing-site / admin component
 
 ```markdown
 ---
-paths: ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css"]
+paths: ["apps/<id>/**"]
 ---
-# Web app conventions
+# <id> — Web conventions
 
 - TypeScript strict; no `any` without a justifying comment.
 - Components/pages placement per docs/tech/structure.md.
@@ -352,19 +438,69 @@ paths: ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css"]
   makes sense (shareable views).
 - Errors surface per voice.md (what happened + why + next step).
 - Motion follows DESIGN.md §7 and respects prefers-reduced-motion.
+- Marketing surfaces: no client JS unless it earns its weight; images sized and
+  lazy-loaded; the primary CTA destination lives in one named constant.
+```
+
+### api component
+
+```markdown
+---
+paths: ["apps/<id>/**"]
+---
+# <id> — API conventions
+
+- TypeScript strict, ESM, `type: module`. No `any` without a justifying comment.
+- Layering: route handler → service → data access. Handlers stay thin: parse,
+  delegate, format. No SQL or business rules inside a route.
+- Validate every request body and query param at the boundary; reject with the
+  documented error shape `{ error: { code, message } }` — one shape everywhere.
+- Status codes: 400 validation, 401 unauthenticated, 403 unauthorized,
+  404 missing, 409 conflict, 422 semantic, 500 only for genuine bugs.
+- Never leak internals in error messages or logs (no stack traces, no secrets,
+  no raw SQL) — the client-facing text follows voice.md.
+- Every endpoint has a vitest + supertest test covering success, validation
+  failure and the unauthorized case. Tests drive the exported `app`, never a
+  live network port.
+- Authorization is checked per resource, not just per route — a user must never
+  read or write another user's data.
+- Secrets come from environment variables declared in `.env.example`; never
+  read `.env` and never commit values.
+- Migrations are forward-only and checked in; document each in the ADR that
+  introduced the schema change.
+```
+
+### cli / library component
+
+```markdown
+---
+paths: ["apps/<id>/**"]
+---
+# <id> — CLI / library conventions
+
+- TypeScript strict, ESM. No `any` without a justifying comment.
+- Public surface is explicit: one entry point exporting exactly what consumers
+  need. Everything else stays internal — other components import the entry
+  point, never a deep path.
+- A CLI prints actionable errors to stderr and exits non-zero; `--help` always
+  works and lists every command. Output follows voice.md.
+- No breaking change to the public surface without an ADR — consumers listed in
+  components.json `depends_on` must be updated in the same feature.
+- Every exported function has a unit test; the test run IS this component's
+  evidence.
 ```
 
 ## 6. Update the CLAUDE.md identity line
 
 Replace the app placeholder in the identity paragraph at the top of `CLAUDE.md`
-with the real app name and one-line pitch (e.g. "This repository builds
-**{{AppName}}** — <one-line pitch> — 100% via AI agents…"). **Change nothing
-else in CLAUDE.md** — its rules, doc map and guardrails are template-level and
-not yours to edit.
+with the real product name and one-line pitch. **Change nothing else in
+CLAUDE.md** — its rules, doc map and guardrails are template-level and not
+yours to edit.
 
 ## Final reminder
 
 `.mcp.json` edits only apply after the user **restarts Claude Code, accepts
 workspace trust and approves the MCP servers**. Do not attempt to call the new
 servers in this session; Phase 6 of the SKILL handles the restart-and-resume
-handoff (iOS excepted — `xcodebuild`/`xcrun simctl` already work over Bash).
+handoff (iOS excepted — `xcodebuild`/`xcrun simctl` already work over Bash, and
+`api`/`cli` components verify over plain Bash too).

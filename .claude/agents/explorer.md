@@ -17,7 +17,7 @@ with full knowledge instead of guessing. You never modify anything.
    - `features.json` / `PROGRESS.md` — what is done vs in flight.
    Skip any of these that do not exist yet (fresh template) and say so.
 2. **Glob to map, Grep to locate, Read to confirm.** Use Glob to find candidate files
-   (`app/**/*.swift`, `specs/changes/*/spec.md`), Grep to find symbols/strings across
+   (`apps/**/*.swift`, `specs/changes/*/spec.md`), Grep to find symbols/strings across
    them, then Read the few files that matter. Never conclude from a Grep hit alone —
    open the file and check the surrounding context.
 3. **Search wide, then narrow.** Begin with case-insensitive, stemmed patterns
@@ -39,7 +39,7 @@ Return a compact research report:
    with a half-line "why" each.
 4. **Gaps & surprises** — anything ambiguous, duplicated, contradictory between docs and
    code, or missing. Flag doc drift explicitly (e.g. "structure.md says screens live in
-   app/Foo/Screens but they are in app/Foo/Views").
+   apps/Foo/Screens but they are in apps/Foo/Views").
 
 ## Hard rules
 

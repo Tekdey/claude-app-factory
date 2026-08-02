@@ -9,23 +9,45 @@ comments from the filled instance. -->
 
 ## System Context
 
-<!-- Mermaid diagram of the app and every external system it talks to (backend,
-APIs, OS services, notifications). For a fully local app the diagram may be just
-App + local storage — that is fine and worth stating. -->
+<!-- Mermaid diagram showing EVERY component from components.json, the calls
+between them (matching depends_on), and every external system (managed backend,
+third-party APIs, OS services, notifications). A single-component local app may
+be just App + local storage — that is fine and worth stating. -->
 
 ```mermaid
 graph TD
-    User(("{{persona_name}}")) --> App["{{app_name}} ({{platform}})"]
-    App --> Store[("{{local_storage}}")]
-    App --> Backend["{{backend_service_or_delete_this_node}}"]
+    User(("{{persona_name}}")) --> App["{{component_id}} ({{stack}})"]
+    Visitor(("visitor")) --> Site["{{marketing_component_id}} — delete if none"]
+    Site -.->|CTA| App
+    App --> Api["{{api_component_id}} — delete if none"]
+    Api --> Store[("{{datastore}}")]
+    App --> Ext["{{external_service_or_delete}}"]
 ```
 
 {{one_paragraph_reading_of_the_diagram}}
 
+## Component Contracts
+
+<!-- Delete this section for a single-component project. One row per edge in the
+diagram: who calls whom, how, and what breaks if the contract changes. This is
+the table that prevents silent drift between an API and its consumers. -->
+
+| From → To | Interface | Contract lives in | On change |
+|---|---|---|---|
+| `{{consumer_id}}` → `{{provider_id}}` | {{http_rest_or_package_import}} | {{path_to_schema_or_types}} | {{who_must_be_updated_and_reverified}} |
+
+- **Shared identity**: {{how_a_user_session_flows_between_components}}
+- **Environments**: {{which_base_urls_each_component_uses_locally_and_in_prod}}
+- **Contract breakage rule**: changing a contract means re-verifying **both**
+  sides — the feature entry lists both components for exactly this reason.
+
 ## Main Modules
 
-<!-- 3-7 modules max at this altitude. One row each: what it owns, what it must
-never do. Module names must match real folders in docs/tech/structure.md. -->
+<!-- 3-7 modules max per component at this altitude. One row each: what it owns,
+what it must never do. Module names must match real folders in
+docs/tech/structure.md. Repeat the table per component when there are several. -->
+
+### {{component_id}}
 
 | Module | Owns | Never does |
 |---|---|---|

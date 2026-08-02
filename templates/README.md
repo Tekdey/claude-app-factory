@@ -46,6 +46,7 @@ during the life of a project. Templates are consumed by skills — never by hand
 | `specs/spec.md` | `specs/changes/<slug>/spec.md` | `/build-next` |
 | `specs/plan.md` | `specs/changes/<slug>/plan.md` | `/build-next` |
 | `specs/tasks.md` | `specs/changes/<slug>/tasks.md` | `/build-next` |
+| `components.example.json` | schema reference only — `/onboard` generates `components.json` from the Project shape answers | `/onboard` |
 | `features.example.json` | schema reference only — `/onboard` generates `features.json` from the PRD | `/onboard` |
 
 `<slug>` = `F-XXX-kebab-title` (feature id + kebab-cased short title), e.g.

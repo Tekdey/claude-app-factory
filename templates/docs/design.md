@@ -5,7 +5,8 @@ direction from rendered previews. This document is LAW for all UI work
 sync with docs/design/tokens.css or the platform token file) AND taste rules
 (when/how to apply them). Be specific: real values, not vibes. Replace every
 {{placeholder}}; delete all comments from the filled instance. 9-section schema
-adapted from VoltAgent/awesome-design-md (see THIRD_PARTY_NOTICES.md). -->
+adapted from VoltAgent/awesome-design-md (see THIRD_PARTY_NOTICES.md), plus a
+10th section mapping the system onto each UI component. -->
 
 # {{app_name}} — Design System
 
@@ -145,3 +146,33 @@ identifiable as {{app_name}} — via {{what_makes_it_recognizable}}.
 7. When this document does not answer a styling question, choose the quieter
    option and note the gap — propose a DESIGN.md addition rather than
    improvising a new pattern.
+
+## 10. Surfaces
+
+<!-- Delete this section for a single-component project. ONE design system
+covers every UI surface — same palette, same type, same voice — but surfaces
+have different jobs. State the adaptation per component from components.json,
+never a second design system. -->
+
+| Surface | Component | Job | Density | Type scale | Motion | Signature element |
+|---|---|---|---|---|---|---|
+| {{surface_name}} | `{{component_id}}` | {{one_line_job}} | {{spacious_or_dense}} | {{which_end_of_the_section_3_scale}} | {{motion_level}} | {{present_or_absent}} |
+
+Guidance to fill it honestly:
+
+- **marketing-site** — persuades a stranger in five seconds: the largest end of
+  the type scale, generous whitespace, exactly one dominant CTA per viewport,
+  the signature element used at full strength. It is the loudest surface.
+- **mobile-app / web-app** — serves a returning user: denser, quieter, faster.
+  Boldness is spent on the one signature moment, everything else recedes.
+- **admin** — information density wins over charm: compact rows, no decorative
+  motion, but the same palette and type families so it still feels like the
+  product.
+
+Rules that hold across every surface (non-negotiable):
+
+- Identical color tokens and font families — a surface may use a different
+  *subset*, never a different *system*.
+- The same voice (voice.md) everywhere, including error strings emitted by
+  non-UI components.
+- Light and dark both work on every surface.

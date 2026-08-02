@@ -25,6 +25,16 @@ if [ -f PROGRESS.md ]; then
   tail -n 15 PROGRESS.md 2>/dev/null || true
 fi
 
+if [ -f components.json ] && command -v jq >/dev/null 2>&1; then
+  components=$(jq -r '[.components[]? | "\(.id) (\(.kind), \(.verify))\(if .primary then " [primary]" else "" end)"] | join(" · ")' \
+    components.json 2>/dev/null || echo "")
+  if [ -n "$components" ] && [ "$components" != "null" ]; then
+    echo ""
+    echo "--- components.json ---"
+    echo "$components"
+  fi
+fi
+
 if [ -f features.json ] && command -v jq >/dev/null 2>&1; then
   total=$(jq -r '.features | length' features.json 2>/dev/null || echo "")
   passing=$(jq -r '[.features[] | select(.passes == true)] | length' features.json 2>/dev/null || echo "")
@@ -32,6 +42,12 @@ if [ -f features.json ] && command -v jq >/dev/null 2>&1; then
     echo ""
     echo "--- features.json ---"
     echo "$passing/$total passing"
+    per_component=$(jq -r '[.features[] | select(.components != null)] | group_by(.components[0])[] |
+      "  \(.[0].components[0]): \([.[] | select(.passes == true)] | length)/\(length)"' \
+      features.json 2>/dev/null || echo "")
+    if [ -n "$per_component" ]; then
+      echo "$per_component"
+    fi
     echo "Next candidates (passes:false):"
     jq -r '[.features[] | select(.passes == false)] | .[0:3][] | "  \(.id) [\(.priority)] \(.title)"' \
       features.json 2>/dev/null || true

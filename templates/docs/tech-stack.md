@@ -1,6 +1,7 @@
 <!-- TEMPLATE: instructions for the agent filling it.
-Destination: docs/tech/tech-stack.md. Filled by /onboard once the platform and
-services are decided. Every row that represents a hard-to-reverse choice needs
+Destination: docs/tech/tech-stack.md. Filled by /onboard once every component's
+stack and the shared services are decided. One stack table per component in
+components.json order (dependencies first). Every row that represents a hard-to-reverse choice needs
 an ADR — create it from templates/docs/adr.md and link it here. This document is
 BINDING (constitution Article IV): agents follow it until an ADR supersedes a
 row. Replace every {{placeholder}}; delete all comments from the filled
@@ -8,12 +9,21 @@ instance. -->
 
 # {{app_name}} — Tech Stack
 
-## Stack Table
+## Components
 
-<!-- One row per layer actually used; delete rows that do not apply. Version =
-the pinned or minimum version. Why = one honest line. ADR = link for every
-hard-to-reverse choice (platform, framework, storage, auth, payments, sync);
-"—" only for trivially reversible picks. -->
+<!-- Mirrors components.json — the manifest is the machine-readable source of
+truth, this table is the human view. -->
+
+| Component | Kind | Stack | Path | Verified by |
+|---|---|---|---|---|
+| `{{component_id}}` | {{kind}} | {{stack_summary}} | `apps/{{component_id}}` | {{verify_method}} |
+
+## Stack Table — {{component_id}}
+
+<!-- Repeat this section per component. One row per layer actually used; delete
+rows that do not apply. Version = the pinned or minimum version. Why = one
+honest line. ADR = link for every hard-to-reverse choice (platform, framework,
+storage, auth, payments, sync); "—" only for trivially reversible picks. -->
 
 | Layer | Choice | Version | Why | ADR |
 |---|---|---|---|---|
@@ -25,18 +35,30 @@ hard-to-reverse choice (platform, framework, storage, auth, payments, sync);
 | Auth | {{auth_or_none}} | {{version}} | {{why}} | [ADR-000X](../adr/000X-{{slug}}.md) |
 | Testing | {{test_frameworks}} | {{version}} | {{why}} | — |
 
+## Shared Decisions
+
+<!-- Choices that span components — delete if single-component. These are the
+ones that hurt most when they drift, so state them once, here. -->
+
+- **Auth**: {{how_identity_flows_across_components}}
+- **API contract**: {{where_the_contract_lives_and_how_consumers_stay_in_sync}}
+- **Environments**: {{local_staging_prod_and_which_urls_each_component_uses}}
+
 ## Local Development Commands
 
 <!-- The exact commands an agent runs in this repo. Keep in sync with
-scripts/*.sh — the scripts are the canonical entry points; list raw equivalents
-for context. -->
+scripts/ — the scripts are the canonical entry points; list raw equivalents for
+context. Root dispatchers cover every component at once. -->
 
 | Task | Command |
 |---|---|
-| Run the app | `./scripts/run.sh` ({{raw_equivalent}}) |
-| Format | `./scripts/format.sh` ({{raw_equivalent}}) |
-| Full test suite | `./scripts/test.sh` ({{raw_equivalent}}) |
-| Quick verification (< 60s) | `./scripts/verify-quick.sh` ({{raw_equivalent}}) |
+| Run `{{component_id}}` | `./scripts/{{component_id}}/run.sh` ({{raw_equivalent}}) |
+| Test `{{component_id}}` | `./scripts/{{component_id}}/test.sh` ({{raw_equivalent}}) |
+| Format anything (all components) | `./scripts/format.sh <file>` |
+| Quick verification, all components (< 60s) | `./scripts/verify-quick.sh` |
+
+<!-- Startup order: a component listed in another's depends_on must be running
+first. Document the exact sequence here if it is not obvious. -->
 
 ## Key Libraries Policy
 

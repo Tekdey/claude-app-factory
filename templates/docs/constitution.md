@@ -24,10 +24,12 @@ for whom, and the core problem it solves. Everything built must serve it. -->
 ## Article II — Quality Bar
 
 1. A feature is **done** only when its acceptance scenarios pass **in the running
-   app** (simulator or browser), never from reading code alone.
+   component** (simulator, browser, real HTTP request or real command), never
+   from reading code alone.
 2. `features.json` `passes` may only be flipped to `true` with `evidence` set to
-   a file under `evidence/` (convention: `evidence/F-XXX-<kebab-title>.png`);
-   the one-line justification goes in `PROGRESS.md`.
+   a file under `evidence/` (convention: `evidence/F-XXX-<kebab-title>.<ext>` —
+   `.png` for UI, `.txt` for API/CLI transcripts); the one-line justification
+   goes in `PROGRESS.md`.
 3. Regressions outrank new work: a previously passing feature that breaks is
    fixed before anything new is built.
 
@@ -47,7 +49,11 @@ for whom, and the core problem it solves. Everything built must serve it. -->
    requires an ADR in `docs/adr/`.
 2. Simplicity is the default: the most boring solution that satisfies the spec
    wins. New dependencies need a stated reason and a docs check first.
-3. {{stack_specific_principle}}
+3. Every deliverable is a component declared in `components.json`, living in
+   `apps/<id>/`. A component never reaches into another's internals — it calls
+   the published interface, in the direction `depends_on` declares. Adding a
+   deliverable means adding a component, never a stray folder.
+4. {{stack_specific_principle}}
 <!-- One principle specific to the chosen stack, e.g. "SwiftUI-first: no UIKit
 unless an ADR justifies it" or "Server components by default; client components
 need a reason." -->

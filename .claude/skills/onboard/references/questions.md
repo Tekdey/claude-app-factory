@@ -1,10 +1,11 @@
 # Onboarding question bank
 
-Seven themes, asked in this order: **Product → Audience → Business model →
-Design → Tone → Tech & constraints → Process preferences.**
+Eight themes, asked in this order: **Product → Project shape → Audience →
+Business model → Design → Tone → Tech & constraints → Process preferences.**
 
-Question id prefixes: `Q-P` Product · `Q-A` Audience · `Q-B` Business model ·
-`Q-D` Design · `Q-V` Tone/Voice · `Q-T` Tech · `Q-W` Process (workflow).
+Question id prefixes: `Q-P` Product · `Q-S` Project shape · `Q-A` Audience ·
+`Q-B` Business model · `Q-D` Design · `Q-V` Tone/Voice · `Q-T` Tech ·
+`Q-W` Process (workflow).
 
 How to use this bank:
 
@@ -70,7 +71,62 @@ Typically answered by: a brief, pitch deck or notes in `context/docs/`.
 
 ---
 
-## Theme 2 — Audience
+## Theme 2 — Project shape
+
+**Ask this theme early and never skip it entirely.** Most people describe the
+piece they have in mind (usually the app) and only remember the API or the
+marketing site much later — by which time the PRD, roadmap and scaffold are
+already built around a single deliverable. Surfacing every component here is
+what makes the rest of the onboarding correct.
+
+Typically answered by: an architecture note or scope section in `context/docs/`.
+
+### Q-S1 · What does this project ship?
+- **Ask**: "Beyond the main thing you just described, what else does this
+  project need to ship? Pick everything that applies — it is normal to have
+  several."
+- **Options** *(multi-select)*: (a) mobile app (iOS/Android) · (b) web app
+  (the product itself, behind login) · (c) marketing site / landing page ·
+  (d) API or backend **you write yourself** (as opposed to a managed backend
+  like Supabase — that is `Q-T3`) · (e) admin dashboard / back-office ·
+  (f) CLI or automation tool · (g) shared library or SDK · (h) nothing else,
+  a single component.
+- **Recommended**: none — this is a factual question, never guess. If the user
+  hesitates, walk the product story out loud: "someone hears about it *(site?)*,
+  signs up *(app?)*, their data lives somewhere *(API? managed backend?)*, and
+  you need to moderate or support them *(admin?)*."
+- **Follow-up for each component picked**: a short id (kebab-case: `ios`, `api`,
+  `web`, `admin`), and whether it is in scope for **v1** or later — a component
+  planned for later is still recorded in `components.json` with its features
+  parked in a later roadmap phase, so the architecture accounts for it now.
+- **Skip if**: `context/docs/` states the full system scope — quote it back for
+  confirmation, never assume a single component from silence.
+
+### Q-S2 · Which component is the centre of gravity?
+- **Ask**: "Which one *is* the product in your head — the one that must be
+  excellent, the others serving it?"
+- **Options**: the components picked in Q-S1.
+- **Recommended**: the one the user described first in Q-P1.
+- **Why it matters**: it becomes `"primary": true` in `components.json`, drives
+  the design system's main surface, the onboarding smoke test, and the default
+  view of `/status`.
+- **Skip if**: only one component exists — it is primary by definition.
+
+### Q-S3 · How do the components talk to each other? *(skip if single component)*
+- **Ask**: "Roughly how do these fit together — which one calls which, and is
+  anything shared between them?"
+- **Options**: (a) app + site both call the API **(recommended for the classic
+  app + API + landing shape)** · (b) the site is fully standalone, just a CTA
+  linking out · (c) shared design tokens or types package between components ·
+  (d) let the agent propose the wiring in `architecture.md` and confirm.
+- **Feeds**: `depends_on` in `components.json`, the system diagram in
+  `architecture.md`, and the build order in the roadmap (a component that others
+  depend on is built first).
+- **Skip if**: an architecture doc in `context/docs/` covers it.
+
+---
+
+## Theme 3 — Audience
 
 Typically answered by: persona docs, market research in `context/docs/`.
 
@@ -116,7 +172,7 @@ Typically answered by: persona docs, market research in `context/docs/`.
 
 ---
 
-## Theme 3 — Business model
+## Theme 4 — Business model
 
 Typically answered by: business plan or pricing notes in `context/docs/`.
 For an internal/personal tool, ask Q-B1 only and skip the rest of the theme.
@@ -160,7 +216,7 @@ For an internal/personal tool, ask Q-B1 only and skip the rest of the theme.
 
 ---
 
-## Theme 4 — Design
+## Theme 5 — Design
 
 Typically answered by: `context/brand/` (assets = LAW) and
 `context/inspiration/` (`love-*` / `hate-*` files, `links.md`).
@@ -218,7 +274,7 @@ Full taxonomy of directions: `.claude/skills/design/references/directions.md`.
 
 ---
 
-## Theme 5 — Tone of voice
+## Theme 6 — Tone of voice
 
 Typically answered by: brand guide with voice section in `context/brand/`.
 
@@ -257,14 +313,18 @@ Typically answered by: brand guide with voice section in `context/brand/`.
 
 ---
 
-## Theme 6 — Tech & constraints
+## Theme 7 — Tech & constraints
 
 Typically answered by: technical notes in `context/docs/`. Run
 `./init.sh doctor` before this theme if the environment matters to the
 recommendation (e.g. is Xcode present?).
 
-### Q-T1 · Platform
-- **Ask**: "Where does v1 ship? Honest tradeoffs:"
+### Q-T1 · Stack per component
+- **Ask**: one stack question **per component declared in Q-S1**, in
+  `depends_on` order (dependencies first). Group them into a single
+  AskUserQuestion call when there are 2–4 components.
+
+For a **mobile app** component, the honest tradeoffs:
 
 | | iOS native (SwiftUI) | Cross-platform (Expo/RN) | Web app (PWA) |
 |---|---|---|---|
@@ -275,11 +335,28 @@ recommendation (e.g. is Xcode present?).
 | Offline | Strong | Good | Limited (service workers) |
 | Agent verifies via | iOS simulator (XcodeBuildMCP) | Simulator/emulator (mobile-mcp) | Browser (Playwright MCP) |
 
-- **Options**: (a) iOS native SwiftUI **(recommended if the doctor check shows
-  a Mac + Xcode and the product is iOS-first — this template's default)** ·
+- **mobile-app** → (a) iOS native SwiftUI **(recommended if the doctor check
+  shows a Mac + Xcode and the product is iOS-first — this template's default)** ·
   (b) cross-platform Expo **(recommended if Android matters or no Mac)** ·
-  (c) web/PWA **(recommended for fastest distribution, no install)**.
-- **Skip if**: platform stated in `context/docs/`.
+  (c) web/PWA instead.
+- **web-app** → (a) Next.js **(recommended when SEO, routing or server
+  rendering matter)** · (b) Vite + React (lighter SPA) · (c) other (name it).
+- **marketing-site** → (a) Astro **(recommended — ships near-zero JS, best
+  Lighthouse scores for a landing page)** · (b) Next.js (recommended only if it
+  shares components with an existing Next web app) · (c) plain HTML/CSS for a
+  one-pager.
+- **api** → (a) Node + Express + TypeScript **(recommended — ubiquitous,
+  trivial for the agent to test over HTTP)** · (b) Fastify (same, faster,
+  stricter schemas) · (c) Python + FastAPI · (d) other (name it). Also ask the
+  datastore: PostgreSQL **(recommended)** · SQLite (single-node, simplest) ·
+  managed (see Q-T3).
+- **admin** → default to the same stack as the web app, sharing its design
+  tokens; only diverge on request.
+- **cli / library** → language follows the component it serves unless stated.
+- **Skip if**: `context/docs/` states the stack for that component.
+- Each answer becomes one ADR (`docs/adr/`) and one row in `tech-stack.md`.
+  Record the `verify` method it implies (`simulator`, `browser`, `http`, `cli`,
+  or `none` for a library proven by its unit tests) in `components.json` — that is how `/verify` knows how to prove features.
 
 ### Q-T2 · Accounts, sync, offline
 - **Ask**: "Do users need accounts? Multiple devices? Does it work offline?"
@@ -314,7 +391,7 @@ recommendation (e.g. is Xcode present?).
 
 ---
 
-## Theme 7 — Process preferences
+## Theme 8 — Process preferences
 
 Rarely in context/ — usually all asked, but they are quick.
 

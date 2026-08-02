@@ -1,27 +1,56 @@
 # scripts/ — project-defined scripts
 
 This folder ships empty (only this README). The onboarding flow (`/onboard`)
-generates four scripts tailored to the chosen stack:
+generates two layers, driven by `components.json`:
+
+```
+scripts/
+├── format.sh                 # root dispatcher — routes a file to its component
+├── verify-quick.sh           # root dispatcher — runs every component's gate
+└── <component-id>/           # one folder per component in components.json
+    ├── run.sh
+    ├── test.sh
+    ├── format.sh
+    └── verify-quick.sh
+```
+
+## Root dispatchers (what the hooks call)
 
 | Script | Contract |
 |--------|----------|
-| `run.sh` | Build & launch the app (simulator or dev server). Also used by `./init.sh start`. |
-| `format.sh <file>` | Format the given file in place. Called by the PostToolUse hook after every edit. |
-| `test.sh` | Run the full test suite. |
-| `verify-quick.sh` | Fast sanity gate (build/typecheck/lint). Called by the Stop hook before a session may end. |
+| `format.sh <file>` | Normalises the (absolute) path the hook passes into a repo-relative one, reads its `apps/<id>/…` prefix and delegates to `scripts/<id>/format.sh`. Called by the PostToolUse hook after every edit. |
+| `verify-quick.sh` | Runs every `scripts/*/verify-quick.sh` and fails if any of them fails. Called by the Stop hook before a session may end. |
+
+The hooks only ever know these two paths — that is what keeps them stable as
+components are added.
+
+## Per-component scripts
+
+| Script | Contract |
+|--------|----------|
+| `<id>/run.sh` | Build & launch that component (simulator, dev server, API process). Also used by `./init.sh start <id>`. |
+| `<id>/format.sh <file>` | Format the given file in place, using that component's formatter. |
+| `<id>/test.sh` | Run that component's full test suite. |
+| `<id>/verify-quick.sh` | Fast sanity gate for that component (build/typecheck/lint). |
 
 ## Contract rules
 
-1. **Optional by design.** Hooks call these scripts only if they exist and are
-   executable — a missing script is a silent no-op, never an error. That is why
-   a freshly cloned template works before onboarding.
+1. **Optional by design.** Hooks and dispatchers call these scripts only if they
+   exist and are executable — a missing script is a silent no-op, never an
+   error. That is why a freshly cloned template works before onboarding.
 2. **Exit codes are the API.** Every script must exit non-zero on failure; that
    is the only signal hooks understand. No exit-0-with-error-text.
-3. **Keep them fast.** `verify-quick.sh` must finish in under 60 seconds — it
-   runs at every session stop. Put slow, exhaustive suites in `test.sh`.
-4. **Run from the repo root.** Scripts are invoked as `./scripts/<name>.sh` from
-   the repository root. Only `format.sh` takes an argument (one file path); the
-   others take none.
+3. **Keep them fast.** `verify-quick.sh` must finish in under 60 seconds **in
+   total across every component** — it runs at every session stop. Put slow,
+   exhaustive suites in `test.sh`.
+4. **Run from the repo root.** Scripts are invoked from the repository root, so
+   a component script starts with `cd "$(dirname "$0")/../.."`. Only the
+   `format.sh` scripts take an argument (one file path); the others take none.
+5. **Startup order.** A component listed in another's `depends_on` must be
+   running first — `run.sh` starts one component, not the whole system;
+   document any required sequence in `docs/tech/tech-stack.md`.
 
-If you change stacks or tooling later, update these scripts (or ask the agent
-to) — the hooks and skills that call them never change.
+If you add a component later (`/onboard` → "Add a component") its script folder
+is created alongside the others; the dispatchers pick it up automatically with
+no edit. If you change stacks or tooling, update the component's scripts (or ask
+the agent to) — the hooks and skills that call them never change.

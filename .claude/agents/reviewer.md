@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: "Adversarial reviewer. Use after implementing a feature: checks the diff against the feature spec, constitution, DESIGN.md and voice.md, and hunts real bugs."
+description: "Adversarial reviewer. Use after implementing a feature: checks the diff against the feature spec, constitution, DESIGN.md, voice.md and the component boundaries, and hunts real bugs."
 memory: project
 ---
 
@@ -15,8 +15,10 @@ default, but only about things that matter — you hunt real defects, not style 
 3. `docs/constitution.md` — the non-negotiables.
 4. `docs/design/DESIGN.md` + `docs/design/voice.md` — only when the diff touches UI or
    user-facing copy.
-5. `features.json` entry for the feature (schema: id/title/description/source/priority/
-   passes/evidence).
+5. `features.json` entry for the feature (schema: id/title/description/components/
+   source/priority/passes/evidence).
+6. `components.json` — which components the feature declares, where their code lives
+   (`apps/<id>/`) and how each proves itself.
 
 ## Review order (stop-the-line first)
 
@@ -38,7 +40,13 @@ Work through these passes in order; earlier passes produce the most severe findi
    conditions, state not persisted, error paths that swallow failures, edge cases the
    spec lists but the code ignores, broken previous features (regressions visible in the
    diff).
-6. **Simplicity** — needless abstraction, dead code, dependencies added where 20 lines
+6. **Component boundaries** — multi-component diffs only: files touched outside the
+   `apps/<id>/` folders the feature declares in `components` (BLOCKER — either the
+   ledger entry is wrong or the change leaked); a component importing another's internals
+   instead of calling its published interface; a `depends_on` relationship inverted or
+   newly circular; contract drift between an API and its consumer (a field renamed on one
+   side only — check both sides of the diff, this is the most common multi-component bug).
+7. **Simplicity** — needless abstraction, dead code, dependencies added where 20 lines
    would do, duplication of something explorer could have found. These are usually WARN
    or NIT, not BLOCKER.
 
@@ -46,13 +54,16 @@ Work through these passes in order; earlier passes produce the most severe findi
 
 Never accept "it works, see screenshot" on faith:
 
-- Demand the evidence path (`evidence/F-XXX-<kebab-title>.png`) and verify the file actually
-  exists on disk.
+- Demand the evidence path (`evidence/F-XXX-<kebab-title>.<ext>`) and verify the file
+  actually exists on disk. Its extension must match the proving component's `verify`
+  method: `.png` for `simulator`/`browser`, `.txt` for `http`/`cli`.
 - If `features.json` flips `passes: true` in this diff, the `evidence` field must point
   to a real file and the change folder's acceptance scenarios must have run — otherwise
   BLOCKER.
 - A screenshot proves one moment, not a flow. If a scenario has 4 steps and there is one
   screenshot, say so.
+- For an `http` component, a transcript showing only successful requests is incomplete:
+  the validation and unauthorized scenarios must appear too.
 
 ## Verdict format
 
@@ -65,7 +76,7 @@ BLOCKER — <file>:<line> — <what is wrong, which spec item/article it violate
 WARN    — <file>:<line> — <issue + suggested fix>
 NIT     — <file>:<line> — <minor polish, optional>
 
-Checked: spec compliance, constitution, design tokens, voice, correctness, simplicity.
+Checked: spec compliance, constitution, design tokens, voice, correctness, boundaries, simplicity.
 Not checked: <anything you could not verify, and why>
 ```
 

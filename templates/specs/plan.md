@@ -29,6 +29,9 @@ a justification — or the plan changes. -->
 | V Design integrity | {{pass_or_note}} |
 | VII Process | {{pass_or_note}} |
 
+<!-- Also confirm: no file is touched outside the apps/<id>/ folders this
+feature declares, and no component reaches into another's internals. -->
+
 ### Complexity Table
 
 <!-- Only rows for actual violations/exceptions. Empty = write "No exceptions". -->
@@ -47,16 +50,31 @@ a justification — or the plan changes. -->
   4 constructions; if it deserves system status, propose a DESIGN.md addition. -->
 - Copy surfaces in this feature: {{surfaces}} — written per voice.md patterns.
 
+## Component Impact
+
+<!-- Delete for a single-component project. One row per component this feature
+touches — they must match the `components` array of its features.json entry.
+Build order follows depends_on: the provider before its consumer, so the
+consumer can be verified against something real. -->
+
+| Component | Build order | What changes | Contract touched? |
+|---|---|---|---|
+| `{{component_id}}` | 1 | {{what}} | {{no_or_which_contract}} |
+| `{{component_id_2}}` | 2 | {{what}} | {{no_or_which_contract}} |
+
+<!-- If a contract between components changes, say here which side moves first,
+how the other stays compatible, and that BOTH sides get re-verified. -->
+
 ## Files to Create / Modify
 
-<!-- Exact paths. One row per file: what changes and why. This table is the
-skeleton tasks.md is built from. -->
+<!-- Exact paths, always under `apps/<component-id>/`. One row per file: what
+changes and why. This table is the skeleton tasks.md is built from. -->
 
 | File | Action | What changes |
 |---|---|---|
-| `{{path/to/file_1}}` | create | {{what}} |
-| `{{path/to/file_2}}` | modify | {{what}} |
-| `{{path/to/test_file}}` | create | {{unit_tests_for_what}} |
+| `apps/{{component_id}}/{{path/to/file_1}}` | create | {{what}} |
+| `apps/{{component_id}}/{{path/to/file_2}}` | modify | {{what}} |
+| `apps/{{component_id}}/{{path/to/test_file}}` | create | {{unit_tests_for_what}} |
 
 ## Data Model Changes
 

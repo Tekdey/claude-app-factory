@@ -17,16 +17,16 @@ docs/
 │   └── roadmap.md         Phases: v0.1 walking skeleton → v1 → post-launch, with feature
 │                          ids matching features.json and exit criteria per phase.
 ├── design/
-│   ├── DESIGN.md          The 9-section design system. Law for all UI work.
+│   ├── DESIGN.md          The 10-section design system. Law for all UI work.
 │   ├── voice.md           Tone of voice: persona, vocabulary, UX-writing patterns.
 │   │                      Law for all user-facing copy.
 │   └── tokens.css         Design tokens (web), or the platform equivalent for native
-│                          (e.g. DesignTokens.swift inside app/).
+│                          (e.g. DesignTokens.swift inside apps/<id>/).
 ├── tech/
 │   ├── tech-stack.md      Chosen stack with versions and reasons; links to ADRs.
 │   ├── architecture.md    System context, modules, data flow, state, sync/offline,
 │   │                      error handling, security notes.
-│   ├── structure.md       File/folder map of app/ + placement and naming rules.
+│   ├── structure.md       Repo + per-component folder maps, placement rules.
 │   └── testing.md         Test pyramid for agents, evidence/ conventions,
 │                          deterministic-mode requirements.
 └── adr/

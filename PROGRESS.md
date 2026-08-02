@@ -18,7 +18,8 @@ git history.
 ## 2026-08-02 — Template instantiated
 
 - **Done:** Template instantiated — onboarding not yet run. No product docs, no
-  app scaffold, no features registry exist yet.
+  component manifest, no scaffolds, no features registry exist yet.
 - **Features:** none (`features.json` is created by onboarding from the PRD).
 - **Next:** run `/onboard` in Claude Code to interview the product owner and
-  generate the foundation docs, the app scaffold and `features.json`.
+  generate the foundation docs, `components.json`, each component's scaffold in
+  `apps/<id>/` and `features.json`.

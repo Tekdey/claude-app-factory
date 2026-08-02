@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Generate or revise the app's visual design system: propose 2-3 distinct art directions with rendered previews, let the user pick, then write docs/design/DESIGN.md, design tokens and voice.md. Used by /onboard and re-runnable anytime."
+description: "Generate or revise the product's visual design system: propose 2-3 distinct art directions with rendered previews, let the user pick, then write docs/design/DESIGN.md, design tokens and voice.md covering every UI surface the project ships. Used by /onboard and re-runnable anytime."
 disable-model-invocation: true
 argument-hint: "[revise|new]"
 ---
@@ -15,7 +15,7 @@ You are producing the visual identity that every future UI session will obey. A 
 
 | File | Source template | Purpose |
 |---|---|---|
-| `docs/design/DESIGN.md` | `templates/docs/design.md` | The 9-section design system — law for all UI work |
+| `docs/design/DESIGN.md` | `templates/docs/design.md` | The 10-section design system — law for all UI work |
 | `docs/design/tokens.css` | contract below | Machine-readable tokens (shadcn CSS-variable contract) |
 | `docs/design/voice.md` | `templates/docs/voice.md` | Tone of voice and UX-writing rules |
 | `.claude/skills/brand/SKILL.md` (generated) | inline template below | Thin auto-trigger wrapper so the brand applies itself |
@@ -31,9 +31,10 @@ You are producing the visual identity that every future UI session will obey. A 
 Read, in this order (skip what does not exist):
 
 1. `docs/product/brief.md`, `docs/product/prd.md`, `docs/product/personas.md` — product, audience, feature names. Previews in Phase 4 must use REAL feature and screen names from the PRD, never invented filler.
-2. `context/brand/*` — **existing brand assets are LAW.** Extract the palette (name the hex values you see), fonts, logo shapes, and any brand guide rules. Candidates may interpret the brand, never contradict it.
-3. `context/inspiration/*` — `love-*` files show desired qualities, `hate-*` files show what to avoid, `links.md` lists references. Describe each image to yourself and extract the qualities (density, warmth, contrast, shape language), not the literal pixels.
-4. Onboarding design answers if this run was invoked from `/onboard` (aesthetic direction picked, color anchor, dark mode need, spacious vs dense, motion level, signature element wish, loved/hated apps).
+2. `components.json` — the UI surfaces to design for. **One design system covers them all** (same tokens, same voice — that is what makes a brand), but surfaces have different jobs: a `marketing-site` persuades a stranger in five seconds (large type, generous space, one dominant CTA), a `mobile-app` or `web-app` serves a returning user (denser, faster, quieter), an `admin` prioritises information density over charm. Components with `verify: http`/`cli` have no UI — skip them, except for their user-facing error strings, which voice.md still governs.
+3. `context/brand/*` — **existing brand assets are LAW.** Extract the palette (name the hex values you see), fonts, logo shapes, and any brand guide rules. Candidates may interpret the brand, never contradict it.
+4. `context/inspiration/*` — `love-*` files show desired qualities, `hate-*` files show what to avoid, `links.md` lists references. Describe each image to yourself and extract the qualities (density, warmth, contrast, shape language), not the literal pixels.
+5. Onboarding design answers if this run was invoked from `/onboard` (aesthetic direction picked, color anchor, dark mode need, spacious vs dense, motion level, signature element wish, loved/hated apps).
 
 If run standalone with no brief and no onboarding answers, ask first (AskUserQuestion when available, max 4 per call; otherwise numbered questions with lettered options): what the app does, 2-3 loved apps + 1 hated with why, aesthetic family (offer the taxonomy from `references/directions.md`), color anchor + dark mode, spacious vs dense + motion level. Every question offers "You decide" as an option.
 
@@ -76,9 +77,9 @@ Present the candidates: name, one-line intent, preview path/screenshot for each.
 
 ## Phase 6 — Emit the design system
 
-1. **`docs/design/DESIGN.md`** from `templates/docs/design.md` — fill all 9 sections (theme & atmosphere; palette table with light/dark/role/usage; typography with fallback stacks; components; layout & spacing; depth & elevation; motion; guardrails incl. the signature element and anti-slop reminders; agent guide for composing new screens). Record the loved/hated references and the rejected candidates' names in section 1 so future sessions know what was already considered.
+1. **`docs/design/DESIGN.md`** from `templates/docs/design.md` — fill all 10 sections (theme & atmosphere; palette table with light/dark/role/usage; typography with fallback stacks; components; layout & spacing; depth & elevation; motion; guardrails incl. the signature element and anti-slop reminders; agent guide for composing new screens; **surfaces** — how the shared system applies to each UI component from `components.json`, only when the project ships more than one). Record the loved/hated references and the rejected candidates' names in section 1 so future sessions know what was already considered.
 2. **`docs/design/tokens.css`** — the shadcn CSS-variable contract so community themes stay drop-in compatible: `:root { … }` and `.dark { … }` blocks defining at minimum `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary`, `--primary-foreground`, `--secondary`, `--secondary-foreground`, `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--destructive`, `--destructive-foreground`, `--border`, `--input`, `--ring`, `--radius`, plus `--font-display`, `--font-body` and any project-specific tokens. Every value must trace back to DESIGN.md — DESIGN.md is the source of truth, tokens.css is derived.
-3. **iOS projects:** the app also needs `DesignTokens.swift` (Color/Font/spacing extensions mirroring tokens.css) inside the app source. If `app/` already exists, write it next to the app entry point (e.g. `app/<AppName>/<AppName>/DesignTokens.swift`). If `app/` is not scaffolded yet (normal when running inside `/onboard`), write the exact Swift file content into DESIGN.md section 9 (Agent guide) under a heading "iOS token file — create at scaffold time" so the scaffold phase places it.
+3. **iOS components:** they also need `DesignTokens.swift` (Color/Font/spacing extensions mirroring tokens.css) inside the component source. If `apps/<id>/` already exists, write it next to the app entry point (e.g. `apps/<id>/<AppName>/DesignTokens.swift`). If nothing is scaffolded yet (normal when running inside `/onboard`), write the exact Swift file content into DESIGN.md section 9 (Agent guide) under a heading "iOS token file — create at scaffold time" so the scaffold phase places it.
 4. **`docs/design/voice.md`** from `templates/docs/voice.md` — dinner-party persona, adjectives/anti-adjectives, formality (explicit T–V form where the language has one), vocabulary tables, per-surface UX-writing patterns, emoji policy, good/bad microcopy examples using this app's real screens.
 
 ## Phase 7 — Generate the brand skill

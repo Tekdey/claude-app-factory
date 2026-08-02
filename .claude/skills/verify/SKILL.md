@@ -1,20 +1,22 @@
 ---
 name: verify
-description: "Verify features against their acceptance scenarios by driving the real app in the simulator/browser and capturing screenshot evidence. Use after implementing, or to run a regression pass."
-argument-hint: "[F-XXX | all]"
+description: "Verify features against their acceptance scenarios by driving the real running components — simulator, browser, HTTP requests or CLI — and capturing evidence. Use after implementing, or to run a regression pass."
+argument-hint: "[F-XXX | <component-id> | all]"
 ---
 
-# /verify — prove behavior on the running app
+# /verify — prove behavior on the running components
 
 Conduct all interaction with the user in the user's language (detect from their messages).
 
-Core principle: **never mark PASS from code reading alone — the app must actually run.** A scenario passes only when you (or the `app-tester` agent) executed it on the launched app and captured a screenshot at the assertion moment.
+Core principle: **never mark PASS from code reading alone — the component must actually run.** A scenario passes only when you (or the `app-tester` agent) executed it against the launched component and captured proof at the assertion moment.
 
 If `docs/constitution.md` does not exist, onboarding has not run: say so and suggest `/onboard` instead.
 
-## The ledger
+## The two manifests
 
-`features.json` at the repo root is the source of truth. Its schema:
+`components.json` tells you **how** to verify: each component's `path`, its `run` script and its `verify` method (`simulator` · `browser` · `http` · `cli` · `none`). Read it first — a feature is verified through the method of the **first** component in its `components` list, with any `depends_on` component started beforehand.
+
+`features.json` is the ledger of **what** to verify. Its schema:
 
 ```json
 {
@@ -24,6 +26,7 @@ If `docs/constitution.md` does not exist, onboarding has not run: say so and sug
       "id": "F-001",
       "title": "short name",
       "description": "user-observable behavior, testable",
+      "components": ["ios"],
       "source": "docs/product/prd.md#FR-001",
       "priority": "P1",
       "passes": false,
@@ -40,20 +43,24 @@ If `docs/constitution.md` does not exist, onboarding has not run: say so and sug
 ### `/verify F-012` — one feature, full acceptance run
 
 1. Find the feature in `features.json` and its spec: `specs/changes/F-012-<kebab-title>/spec.md`. If the change folder was archived long ago and requirements now live only in `specs/current/`, use those.
-2. Build and launch the app via the project's MCP server (or `scripts/run.sh`).
+2. Start the feature's components: its `depends_on` first, then the component that carries the proof — `scripts/<id>/run.sh` for each.
 3. Execute every acceptance scenario AS-1…AS-n:
    - **Given** — reach the precondition (seed data, navigate).
-   - **When** — perform the interaction through the UI.
-   - **Then** — check the observable outcome; screenshot at the assertion moment.
-4. Evidence naming: primary file `evidence/F-XXX-<kebab-title>.png` (e.g. `evidence/F-012-streak-badge.png`); additional scenarios `evidence/F-012-streak-badge-as2.png`, failures `…-fail.png`.
+   - **When** — perform the interaction (through the UI, an HTTP request or a command, per the verify method).
+   - **Then** — check the observable outcome; capture proof at the assertion moment.
+4. Evidence naming: primary file `evidence/F-XXX-<kebab-title>.<ext>` (e.g. `evidence/F-012-streak-badge.png`); additional scenarios `…-as2.<ext>`, failures `…-fail.<ext>`. Extension follows the verify method: `.png` for `simulator`/`browser`, `.txt` for `http`/`cli`.
 5. Report PASS/FAIL per scenario, each with its evidence path.
 6. Ledger update:
    - All scenarios PASS and the primary evidence file exists → you may set `"passes": true` with the evidence path.
-   - Any FAIL → `passes` must be (or become) `false`; keep the failing screenshot and quote a short excerpt of app logs in your report.
+   - Any FAIL → `passes` must be (or become) `false`; keep the failing proof file and quote a short excerpt of the component's logs in your report.
+
+### `/verify <component-id>` — one component's regression pass
+
+Same as `/verify all` below, restricted to features whose `components` include that id. Useful after changing something shared (an API contract, a design token).
 
 ### `/verify all` — regression pass
 
-1. Take every feature with `"passes": true`, in id order.
+1. Take every feature with `"passes": true`, grouped by component (start each component once, verify all its features, move on — restarting a simulator per feature is wasteful), in id order within a group.
 2. For each, execute ONE core scenario (AS-1, or the most representative one) with the same discipline and evidence naming as above.
 3. Any FAIL → flip that feature's `passes` back to `false` (keep its old `evidence` path for reference) and append a regression entry to `PROGRESS.md`: date, feature id, what broke, evidence of the failure.
 4. Report a compact table: id / title / result / evidence path, then totals.
@@ -67,11 +74,13 @@ If `docs/constitution.md` does not exist, onboarding has not run: say so and sug
 
 ## Driving discipline (binding — same rules as /build-next and the app-tester agent)
 
-- Always take an accessibility snapshot (`describe_ui` on iOS, aria snapshot in the browser) before tapping or clicking — never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation.
-- Tool names differ per MCP server (XcodeBuildMCP vs Playwright vs mobile-mcp): discover them from your available tools; do not assume.
+- **`simulator` / `browser`** — always take an accessibility snapshot (`describe_ui` on iOS, aria snapshot in the browser) before tapping or clicking; never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation. Tool names differ per MCP server (XcodeBuildMCP vs Playwright vs mobile-mcp): discover them from your available tools; do not assume.
+- **`http`** — issue the real requests against the running API (curl is denied by permissions; use the component's own test runner, e.g. vitest + supertest, or a script under `apps/<id>/`). Evidence is a `.txt` transcript: method, path, request body, status code, response body, one per scenario. Cover the failure scenarios too (validation, unauthorized) — an API that only proves its happy path is not verified.
+- **`cli`** — run the real commands; evidence is a `.txt` transcript of command, output and exit code.
+- **`none`** (library) — its unit test run is the evidence; save the test output as `.txt`.
 - Delegating to the `app-tester` agent is encouraged for long scenario lists — it follows this same discipline and returns per-scenario PASS/FAIL plus evidence paths.
-- Prefer deterministic runs: seeded/demo data and animations-off flags as defined in `docs/tech/testing.md`, when the app provides them.
-- On FAIL, capture the failing screenshot AND a relevant app-log excerpt; a bare "it failed" is not a report.
+- Prefer deterministic runs: seeded/demo data, animations-off flags, fixed clock and a test database as defined in `docs/tech/testing.md`, when the component provides them.
+- On FAIL, capture the failing proof file AND a relevant log excerpt from the component; a bare "it failed" is not a report.
 
 ## Reporting
 
