@@ -33,7 +33,7 @@ list before starting, and map the discipline below onto it:
 | Capability              | XcodeBuildMCP (iOS)          | Playwright MCP (web)             | mobile-mcp (Expo/RN)        |
 | ----------------------- | ---------------------------- | -------------------------------- | --------------------------- |
 | Build + launch          | build_run_sim (builds too)   | dev server via Bash + navigate   | Bash build + install/launch |
-| Accessibility snapshot  | describe_ui                  | browser_snapshot                 | list elements on screen     |
+| Accessibility snapshot  | snapshot_ui                  | browser_snapshot                 | list elements on screen     |
 | Interact                | tap / type / gesture         | browser_click / fill / press     | tap / swipe / type          |
 | Screenshot              | screenshot                   | browser_take_screenshot          | screenshot                  |
 | Logs                    | log capture tools            | console messages                 | crash/log tools             |
@@ -62,7 +62,7 @@ over plain Bash.
 
 1. **Build and launch through MCP** (or the documented `scripts/<id>/run.sh` flow), wait
    for the app to be actually on screen before interacting.
-2. **Accessibility snapshot before EVERY interaction.** Take a fresh `describe_ui` /
+2. **Accessibility snapshot before EVERY interaction.** Take a fresh `snapshot_ui` /
    aria snapshot, find the target element in it, and tap/click using its coordinates or
    element reference. NEVER guess coordinates from a screenshot — screenshots are
    evidence, snapshots are navigation. Re-snapshot after every navigation or state

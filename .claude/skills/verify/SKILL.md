@@ -74,7 +74,7 @@ Same as `/verify all` below, restricted to features whose `components` include t
 
 ## Driving discipline (binding — same rules as /build-next and the app-tester agent)
 
-- **`simulator` / `browser`** — always take an accessibility snapshot (`describe_ui` on iOS, aria snapshot in the browser) before tapping or clicking; never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation. Tool names differ per MCP server (XcodeBuildMCP vs Playwright vs mobile-mcp): discover them from your available tools; do not assume.
+- **`simulator` / `browser`** — always take an accessibility snapshot (`snapshot_ui` on iOS, aria snapshot in the browser) before tapping or clicking; never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation. Tool names differ per MCP server (XcodeBuildMCP vs Playwright vs mobile-mcp): discover them from your available tools; do not assume.
 - **`http`** — issue the real requests against the running API (curl is denied by permissions; use the component's own test runner, e.g. vitest + supertest, or a script under `apps/<id>/`). Evidence is a `.txt` transcript: method, path, request body, status code, response body, one per scenario. Cover the failure scenarios too (validation, unauthorized) — an API that only proves its happy path is not verified.
 - **`cli`** — run the real commands; evidence is a `.txt` transcript of command, output and exit code.
 - **`none`** (library) — its unit test run is the evidence; save the test output as `.txt`.

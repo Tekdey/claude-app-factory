@@ -91,11 +91,11 @@ This project deliberately does **not** do the following (mirror of the PRD
 Non-Goals section — if they diverge, the PRD is corrected, not this list
 silently ignored):
 
-- {{non_goal_1}}
-- {{non_goal_2}}
-- {{non_goal_3}}
-<!-- Copy from the PRD Non-Goals. A feature request that conflicts with a
-non-goal requires an explicit user override recorded in an ADR. -->
+- {{non_goal}}
+<!-- One bullet per PRD non-goal — the two lists must match in count and
+wording, so copy them across verbatim (there may be two, or seven). A feature
+request that conflicts with a non-goal requires an explicit user override
+recorded in an ADR. -->
 
 ## Amendment Procedure
 

@@ -21,8 +21,10 @@ echo "=== Session context (auto-injected by .claude/hooks/session-context.sh) ==
 
 if [ -f PROGRESS.md ]; then
   echo ""
-  echo "--- PROGRESS.md (last 15 lines) ---"
-  tail -n 15 PROGRESS.md 2>/dev/null || true
+  echo "--- PROGRESS.md (2 most recent entries) ---"
+  # PROGRESS.md is reverse-chronological (newest entry first), so read from the
+  # TOP: `tail` would inject the oldest entry and grow staler every session.
+  awk '/^## /{n++} n>=1 && n<=2 {print} n>2 {exit}' PROGRESS.md 2>/dev/null || true
 fi
 
 if [ -f components.json ] && command -v jq >/dev/null 2>&1; then

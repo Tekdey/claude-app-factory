@@ -1,0 +1,99 @@
+name: Feature request
+description: Propose a change to the machinery — a new command, a scaffold recipe, a doc template, a rule.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lead with the **problem**, not the solution — the best proposals here
+        often end up implemented somewhere other than where they were first
+        imagined.
+
+        Remember what this repo is: a template, not an app. Proposals change the
+        machinery (skills, agents, hooks, templates, scaffolds), never product
+        code. See
+        [CONTRIBUTING.md](https://github.com/Tekdey/claude-app-factory/blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is painful, manual, wrong or impossible today? Describe the situation you hit, not the fix you have in mind.
+      placeholder: |
+        When a project ships an API and a web app, /verify restarts the API for
+        every single feature, so a full regression pass takes 20 minutes of
+        boot time before any assertion runs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do about it today
+      description: The manual steps, the prompt you have to type, or "nothing — I gave up".
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: What should change. Be concrete about the resulting agent behavior — this repo is a prompt surface, so "the agent should X instead of Y" is the useful level of detail.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the machinery does it touch?
+      description: Best guess is fine.
+      multiple: true
+      options:
+        - CLAUDE.md — always-loaded operating manual
+        - A skill — /onboard
+        - A skill — /design
+        - A skill — /build-next
+        - A skill — /verify
+        - A skill — /status
+        - A skill — /new-feature
+        - A new command or skill
+        - Agents (.claude/agents/)
+        - Hooks or permissions (.claude/hooks/, .claude/settings.json)
+        - Doc or spec templates (templates/docs/, templates/specs/)
+        - Scaffold recipes or scripts (onboard/references/scaffold.md, scripts/)
+        - MCP configuration (.mcp.json, templates/mcp/)
+        - The features.json / components.json schemas
+        - Repo documentation (README, CONTRIBUTING, SECURITY)
+    validations:
+      required: true
+
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Knock-on effects
+      description: |
+        What else would have to change? Common ones: the schema is duplicated
+        across 6 files and must stay identical; a new component kind needs a
+        scaffold recipe, scripts, a rule file and possibly an MCP driver; a new
+        command spends context in every session. Say what you already spotted.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including "why an existing command can't just absorb this".
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: This changes the template's machinery, not product code inside a generated project.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true

@@ -46,8 +46,13 @@ docs/product/personas.md. Format: As <persona>, when <situation>, I want
   components it needs — this feeds the `components` field in features.json. An
   FR whose behavior spans two components stays ONE requirement, written from the
   user's point of view, not split by implementation layer.
-- Each FR gets a heading anchor (### FR-001 — Title) because features.json
-  references docs/product/prd.md#FR-001.
+- Component group headings are `###` (### Mobile app / ### API / ### Marketing
+  site); FR headings are `####` so they nest under their group. Single-component
+  projects skip the group headings and use `###` for FRs.
+- Every FR heading carries an explicit anchor so the features.json `source`
+  link actually resolves — markdown auto-slugs would give
+  `#fr-001--create-a-habit`, not `#FR-001`:
+  `#### FR-001 — Title <a id="FR-001"></a>`
 - Mark unresolved decisions [NEEDS CLARIFICATION: question] and resolve them via
   the Clarifications Log before implementation. -->
 

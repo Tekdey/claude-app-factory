@@ -1,0 +1,135 @@
+name: Bug report
+description: The agent did something wrong — a command misbehaved, a hook fired incorrectly, a generated file is malformed.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. This template configures an autonomous agent, so
+        the most useful bug reports say **what the agent did** versus **what you
+        expected it to do**, with the transcript around it.
+
+        Do not paste secrets, tokens or `.env` contents. For a vulnerability,
+        stop here and follow
+        [SECURITY.md](https://github.com/Tekdey/claude-app-factory/blob/main/SECURITY.md)
+        instead.
+
+  - type: dropdown
+    id: command
+    attributes:
+      label: Which command was running?
+      options:
+        - /onboard
+        - /design
+        - /build-next
+        - /verify
+        - /status
+        - /new-feature
+        - No command — plain conversation or session start/stop
+        - ./init.sh (doctor or start)
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: phase
+    attributes:
+      label: Where in that command did it go wrong?
+      description: "Phase or step, if you can tell. Example: /onboard Phase 5 — scaffold; /build-next step 4 — verification."
+      placeholder: "/onboard Phase 3 — doc generation"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: kinds
+    attributes:
+      label: Which component kinds are involved?
+      description: The `kind` values in your `components.json`. Check every one that is part of the project, even if only one misbehaved.
+      options:
+        - label: mobile-app — native iOS (SwiftUI)
+        - label: mobile-app — cross-platform (Expo / React Native)
+        - label: web-app
+        - label: marketing-site
+        - label: api
+        - label: admin
+        - label: cli
+        - label: library
+        - label: None yet — onboarding had not created components.json
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What the agent did
+      description: The actual behavior — files written, commands run, what it said.
+      placeholder: |
+        It wrote features.json with "component" (singular) on every entry, then
+        /verify could not match any feature to a component and reported 0/12.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: From a fresh clone if possible — the answers you gave the interview matter as much as the commands.
+      placeholder: |
+        1. Clone the template into an empty folder, launch `claude`
+        2. Run /onboard, answer Q-S1 with "mobile app + API"
+        3. At Phase 3, observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant PROGRESS.md / evidence excerpt
+      description: |
+        Paste the `PROGRESS.md` entry for the session, plus the transcript or a
+        description of the file in `evidence/`. If a generated JSON file is
+        involved, include the output of `jq . features.json` (or
+        `components.json`). Redact anything private.
+      render: text
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`.
+      placeholder: "2.1.x"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: "macOS 15.2 (Apple silicon) / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: template-version
+    attributes:
+      label: Template commit
+      description: Output of `git log --oneline -1` in your clone, or the commit you created your repo from.
+      placeholder: "96ac6e9"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I ran `./init.sh doctor` and my environment passes (or I attached the failing lines).
+          required: true
+        - label: This report contains no secrets, tokens or `.env` contents.
+          required: true

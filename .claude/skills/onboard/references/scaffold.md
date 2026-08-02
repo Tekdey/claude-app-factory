@@ -70,39 +70,69 @@ Target layout: `apps/<id>/{{AppName}}.xcodeproj` + sources in
 
 Preferred routes, in order:
 
-1. **XcodeBuildMCP scaffold tool** — if the XcodeBuildMCP server is already
-   approved in this session, use its project-scaffold tool (discover the exact
-   tool name from the available tools; it takes app name, bundle id, path).
-2. **Xcode GUI (most reliable fallback)** — ask the user to do it once by
+1. **Xcode GUI (default — most reliable)** — ask the user to do it once by
    hand: Xcode → New Project → iOS App, Product Name `{{AppName}}`, Bundle
    Identifier `{{BUNDLE_ID}}`, Interface SwiftUI, Language Swift, Storage
    None, save into `apps/<id>/`. Takes them under a minute; wait, then verify.
+   Yields exactly the target layout above.
+2. **XcodeBuildMCP `scaffold_ios_project`** — only when the
+   `project-scaffolding` workflow is enabled. XcodeBuildMCP ships **simulator
+   tools only by default**, so this tool is usually absent: check your available
+   tools before choosing this route, and do not waste a turn hunting for it.
+   Note it produces a **different layout** — a `.xcworkspace`, an app shell
+   project and an SPM feature package — so the verify command and every
+   `scripts/<id>/*.sh` must use `-workspace "apps/<id>/{{AppName}}.xcworkspace"`
+   instead of `-project …xcodeproj`.
 3. **Manual project files** — last resort: write a minimal SwiftUI app
    (`{{AppName}}App.swift` with `@main` App struct, `ContentView.swift`,
    `Assets.xcassets`) plus a minimal `project.pbxproj`. The pbxproj format is
    plain text but unforgiving — only attempt if routes 1 and 2 are impossible,
    and verify immediately with a build.
 
-Verify before moving on:
+Pick the simulator ONCE and reuse it everywhere. Resolve it to a UDID: device
+names now repeat across installed runtimes, so `-destination "name=…"` can be
+ambiguous.
 
 ```bash
+SIM_UDID=$(xcrun simctl list devices available -j \
+  | jq -r '[.devices[][] | select(.name=="iPhone 16")][0].udid // empty')
+[ -n "$SIM_UDID" ] || SIM_UDID=$(xcrun simctl list devices available -j \
+  | jq -r '[.devices[][] | select(.isAvailable)][0].udid')
 xcodebuild -project "apps/<id>/{{AppName}}.xcodeproj" -scheme "{{AppName}}" \
-  -destination "platform=iOS Simulator,name=iPhone 16" -derivedDataPath build -quiet build
+  -destination "id=$SIM_UDID" -derivedDataPath build -quiet build
 ```
 
-(If "iPhone 16" doesn't exist, pick a device from
-`xcrun simctl list devices available`, and use that name in the scripts below.)
+Record the chosen device name in `docs/tech/tech-stack.md` and use `id=$SIM_UDID`
+in the scripts below (they resolve it the same way).
+
+**Design tokens:** `docs/design/DESIGN.md` §9 contains an "iOS token file —
+create at scaffold time" block written by `/design`. Copy it now to
+`apps/<id>/{{AppName}}/DesignSystem/DesignTokens.swift` and add the matching
+light/dark color sets to `Assets.xcassets`. Skipping this leaves every rule file
+pointing at a token file that does not exist.
 
 ### mobile-app · cross-platform (Expo / React Native) → `apps/<id>/`
 
 ```bash
-npx create-expo-app@latest apps/<id> --template blank-typescript
+npx create-expo-app@latest apps/<id> --template blank-typescript --no-agents-md
+rm -rf apps/<id>/.git          # create-expo-app always git-inits and has no --no-git
+rm -f apps/<id>/CLAUDE.md apps/<id>/AGENTS.md
+rm -rf apps/<id>/.claude
 ```
+
+The cleanup is not optional: a nested `.git` makes the whole component invisible
+to this repository, and a nested `CLAUDE.md` / `.claude/settings.json` competes
+with this repo's operating manual and can enable plugins the user never
+approved. **No scaffold may leave a `CLAUDE.md`, `AGENTS.md` or `.claude/`
+inside `apps/<id>/` — check after every create command.**
 
 Then, inside `apps/<id>/`:
 
-- Add jest so the test script works: `npx expo install jest-expo jest @types/jest`
-  and add `"test": "jest --ci"` + `"jest": { "preset": "jest-expo" }` to package.json.
+- Add jest so the test script works: `npx expo install jest-expo jest @types/jest --dev`
+  and add `"test": "jest --ci --passWithNoTests"`, `"typecheck": "tsc --noEmit"`
+  and `"jest": { "preset": "jest-expo" }` to package.json. Without
+  `--passWithNoTests` the test script fails the moment the component is created,
+  before anyone has written a test.
 - Note for the final recap: **no Mac needed** for device builds —
   `npx eas build` compiles iOS/Android in Expo's cloud. Local simulator run
   (Mac only): `npx expo run:ios` or Expo Go via `npx expo start`.
@@ -111,16 +141,25 @@ Then, inside `apps/<id>/`:
 
 - Next.js (SEO/SSR matters): `npx create-next-app@latest apps/<id> --ts --app --no-src-dir`
 - Vite + React (SPA behind a login): `npm create vite@latest apps/<id> -- --template react-ts`,
-  then `npm i -D vitest` and add `"test": "vitest run"` to package.json.
+  then `npm i -D vitest` and add `"test": "vitest run --passWithNoTests"` plus
+  `"typecheck": "tsc -b --noEmit"` to package.json. **`tsc -b` is load-bearing**:
+  create-vite emits a solution-style root tsconfig (`{"files": [], "references":
+  […]}`) that plain `tsc --noEmit` silently ignores, checking zero files.
 - Browser automation comes from the Playwright **MCP server**, which manages its
   own browser install — do not add Playwright as an app dependency.
 
 ### marketing-site → `apps/<id>/`
 
 ```bash
-npm create astro@latest apps/<id> -- --template minimal --typescript strict --no-install --no-git
-cd apps/<id> && npm install
+npm create astro@latest apps/<id> -- --template minimal --no-install --no-git --no-ai --skip-houston
+cd apps/<id> && npm install && npm i -D @astrojs/check typescript
 ```
+
+Add `"typecheck": "astro check"` to package.json. All three parts matter:
+`--no-ai` stops Astro writing its own `AGENTS.md`/`CLAUDE.md` into the
+component; `@astrojs/check` must be installed or `astro check` prompts to
+install it and, with no TTY (exactly how the Stop hook runs it), **exits 0
+without checking anything** — a permanently green gate.
 
 - Astro is the default because a landing page should ship near-zero JS; it also
   keeps the marketing surface independent from the product's app framework.
@@ -141,8 +180,22 @@ npx tsc --init --rootDir src --outDir dist --strict --module nodenext --moduleRe
 ```
 
 Then in `apps/<id>/package.json` set `"type": "module"` and the scripts:
-`"dev": "tsx watch src/server.ts"`, `"build": "tsc"`, `"test": "vitest run"`,
-`"typecheck": "tsc --noEmit"`.
+`"dev": "tsx watch src/server.ts"`, `"build": "tsc"`,
+`"test": "vitest run --passWithNoTests"`, `"typecheck": "tsc --noEmit"`.
+
+`tsc --init` leaves the config incomplete for this layout — add to
+`apps/<id>/tsconfig.json`:
+
+```jsonc
+  "compilerOptions": { /* … */ "types": ["node"] },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+```
+
+Without `include`/`exclude` the default `**/*` fights `rootDir: src` and both
+`build` and `typecheck` hard-fail as soon as a file lives outside `src/`.
+Without `"types": ["node"]`, `process` only typechecks by accident (via a
+transitive `@types/node`).
 
 Minimum viable server (`src/server.ts`) exposing a health route the agent can
 verify immediately:
@@ -163,6 +216,26 @@ if (process.env.NODE_ENV !== "test") {
 Export `app` separately from `listen` so `supertest` can drive it in-process —
 that is what makes `verify: http` fast and deterministic.
 
+**ESM + nodenext: every relative import needs the compiled `.js` extension**, even
+though the file on disk is `.ts`. Write the reference test at
+`apps/<id>/src/server.test.ts` (inside `src/`, per the tsconfig above):
+
+```ts
+import { describe, it, expect } from "vitest";
+import request from "supertest";
+import { app } from "./server.js";   // .js — NOT "./server"
+
+describe("GET /health", () => {
+  it("reports ok", async () => {
+    const res = await request(app).get("/health");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "ok" });
+  });
+});
+```
+
+This test is also the shape every `verify: http` acceptance scenario takes.
+
 Datastore: follow the ADR. PostgreSQL → add the driver plus a migration tool and
 document the connection env var in `.env.example`. SQLite → a file under
 `apps/<id>/data/` with the path in `.env.example` and the file gitignored.
@@ -176,7 +249,9 @@ route inside the main web app.
 ### cli → `apps/<id>/`
 
 Node + TypeScript with a `bin` entry in package.json, or the language of the
-component it serves. Must print `--help` and exit 0 — that is its smoke test.
+component it serves. Add `"typecheck": "tsc --noEmit"` and
+`"test": "vitest run --passWithNoTests"` to package.json. Must print `--help`
+and exit 0 — that is its smoke test.
 
 ### library → `apps/<id>/`
 
@@ -198,6 +273,31 @@ bash -n scripts/*.sh scripts/*/*.sh
 Contract (see `scripts/README.md`): each script exits non-zero on failure;
 `verify-quick.sh` must stay under 60 seconds **in total** across components.
 
+### Conventions every component script follows
+
+- Starts with `#!/usr/bin/env bash` and `set -euo pipefail`.
+- `run.sh`, `test.sh`, `verify-quick.sh` `cd` **into the component**:
+  `cd "$(dirname "$0")/../../apps/<id>"`.
+- `format.sh` stays at the **repo root** (`cd "$(dirname "$0")/../.."`) because
+  it receives repo-relative paths from the dispatcher. Full shape:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+TARGET="${1:-apps/<id>/}"
+case "$TARGET" in
+  apps/<id>/*|apps/<id>/) ;;
+  *) exit 0 ;;
+esac
+npx prettier --write --ignore-unknown --log-level warn "$TARGET"
+```
+
+- Never call a tool through bare `npx` in a gate: `npx <tool>` silently
+  downloads a same-named package when the tool is absent locally (`npx tsc`
+  fetches an unrelated `tsc@2.0.4`). Always go through a package.json script
+  (`npm run typecheck`), which fails loudly instead.
+
 ### Root dispatchers (write these verbatim, they are stack-independent)
 
 `scripts/format.sh` — the post-edit hook passes it the edited file path:
@@ -209,8 +309,13 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 target="${1:-}"
 [ -n "$target" ] || exit 0
-# The hook passes an ABSOLUTE path — reduce it to a repo-relative one first.
-target="${target#"$PWD"/}"
+# The hook passes an ABSOLUTE path — reduce it to a repo-relative one, resolving
+# symlinks on both sides (macOS /tmp vs /private/tmp would otherwise no-op).
+root=$(pwd -P)
+if [ -e "$target" ]; then
+  target="$(cd "$(dirname "$target")" && pwd -P)/$(basename "$target")"
+fi
+target="${target#"$root"/}"
 case "$target" in
   apps/*) id="${target#apps/}"; id="${id%%/*}" ;;
   *) exit 0 ;;
@@ -230,6 +335,13 @@ cd "$(dirname "$0")/.."
 status=0
 for script in scripts/*/verify-quick.sh; do
   [ -x "$script" ] || continue
+  id="${script#scripts/}"; id="${id%/verify-quick.sh}"
+  # Skip a component whose dependencies are not installed yet — a gate that
+  # fails because nothing is installed teaches the agent to ignore the gate.
+  if [ -f "apps/$id/package.json" ] && [ ! -d "apps/$id/node_modules" ]; then
+    echo "skipping $id (dependencies not installed)" >&2
+    continue
+  fi
   if ! "$script"; then
     echo "verify-quick failed: $script" >&2
     status=1
@@ -288,9 +400,20 @@ xcodebuild -project "apps/<id>/${APP_NAME}.xcodeproj" -scheme "$APP_NAME" \
   -derivedDataPath build -quiet test
 ```
 
-`scripts/<id>/verify-quick.sh`: same as `test.sh` with `build` instead of
-`test` — does it still compile? (First run is slow; incremental builds against
-the cached `build/` derived data stay well under 60s.)
+`scripts/<id>/verify-quick.sh`: the cheapest check that catches real breakage —
+`swiftformat --lint apps/<id>/` when swiftformat is installed, otherwise the
+same `xcodebuild build` as `test.sh` but guarded so it is skipped when the
+derived-data cache is cold:
+
+```bash
+if [ ! -d build/Build ]; then
+  echo "skipping iOS build gate (no warm derived data yet)" >&2
+  exit 0
+fi
+```
+
+A full first-run `xcodebuild` takes minutes and blows the 60s budget at every
+session stop; the full build belongs in `test.sh` and in `/verify`.
 
 ### Expo component scripts
 
@@ -300,13 +423,9 @@ cd "$(dirname "$0")/../../apps/<id>"
 if [ "$(uname)" = "Darwin" ]; then npx expo start --ios; else npx expo start; fi
 ```
 
-`test.sh` → `npm test`; `verify-quick.sh` → `npx tsc --noEmit`;
+`test.sh` → `npm test`; `verify-quick.sh` → `npm run typecheck`;
 `format.sh` → `npx prettier --write --ignore-unknown --log-level warn "$TARGET"`
 guarded by `case "$TARGET" in apps/<id>/*|apps/<id>/) ;; *) exit 0 ;; esac`.
-Every component script starts with `#!/usr/bin/env bash` and `set -euo pipefail`;
-`run.sh`/`test.sh`/`verify-quick.sh` then `cd` into the component
-(`cd "$(dirname "$0")/../../apps/<id>"`), while `format.sh` stays at the repo
-root (`cd "$(dirname "$0")/../.."`) because it receives repo-relative paths.
 
 ### web-app / marketing-site / admin component scripts
 
@@ -315,8 +434,8 @@ root (`cd "$(dirname "$0")/../.."`) because it receives repo-relative paths.
 cd "$(dirname "$0")/../../apps/<id>" && npm run dev
 ```
 
-`test.sh` → `npm test`; `verify-quick.sh` → `npx tsc --noEmit` (Astro:
-`npx astro check`); `format.sh` → prettier, scoped exactly like the Expo one.
+`test.sh` → `npm test`; `verify-quick.sh` → `npm run typecheck`; `format.sh` →
+prettier, scoped exactly like the Expo one.
 
 ### api component scripts
 
@@ -326,7 +445,7 @@ cd "$(dirname "$0")/../../apps/<id>" && npm run dev
 ```
 
 `test.sh` → `npm test` (vitest + supertest); `verify-quick.sh` →
-`npx tsc --noEmit`; `format.sh` → prettier, scoped to `apps/<id>/`.
+`npm run typecheck`; `format.sh` → prettier, scoped to `apps/<id>/`.
 
 ### cli / library component scripts
 
@@ -336,7 +455,7 @@ cd "$(dirname "$0")/../../apps/<id>" && npm start -- --help
 ```
 
 `test.sh` → `npm test` (a library's test suite is its only proof: `verify: none`);
-`verify-quick.sh` → `npx tsc --noEmit`; `format.sh` → prettier, scoped to
+`verify-quick.sh` → `npm run typecheck`; `format.sh` → prettier, scoped to
 `apps/<id>/`. A `library` component has no meaningful `run.sh`: write one that
 prints a one-line explanation and exits 0, so `./init.sh start <id>` stays
 predictable.

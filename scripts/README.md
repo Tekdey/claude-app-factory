@@ -43,9 +43,15 @@ components are added.
 3. **Keep them fast.** `verify-quick.sh` must finish in under 60 seconds **in
    total across every component** — it runs at every session stop. Put slow,
    exhaustive suites in `test.sh`.
-4. **Run from the repo root.** Scripts are invoked from the repository root, so
-   a component script starts with `cd "$(dirname "$0")/../.."`. Only the
-   `format.sh` scripts take an argument (one file path); the others take none.
+4. **Working directory.** Scripts are invoked from the repository root.
+   `run.sh`, `test.sh` and `verify-quick.sh` `cd` **into their component**
+   (`cd "$(dirname "$0")/../../apps/<id>"`); `format.sh` stays at the **repo
+   root** (`cd "$(dirname "$0")/../.."`) because it receives repo-relative
+   paths. Only the `format.sh` scripts take an argument (one file path).
+6. **No bare `npx` in a gate.** `npx <tool>` silently downloads a same-named
+   package when the tool is absent locally, which turns a gate into a false
+   failure — or worse, a false pass. Call tools through a package.json script
+   (`npm run typecheck`) so a missing dependency fails loudly.
 5. **Startup order.** A component listed in another's `depends_on` must be
    running first — `run.sh` starts one component, not the whole system;
    document any required sequence in `docs/tech/tech-stack.md`.

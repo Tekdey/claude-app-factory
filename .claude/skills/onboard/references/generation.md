@@ -212,7 +212,14 @@ Ground rules for every document:
 - **Construction rules**:
   - Source of truth: PRD FRs + roadmap phases. Every FR yields one or more
     features; every feature's `source` points at its FR anchor
-    (`docs/product/prd.md#FR-001`).
+    (`docs/product/prd.md#FR-001`) — which resolves only because the PRD
+    template gives each FR heading an explicit `<a id="FR-001"></a>`.
+  - **Infrastructure is never its own feature.** A database connection, a
+    migrations runner, project wiring, an API contract package: none of them is
+    user-observable, so none can carry an FR or an acceptance scenario. Fold
+    each into the first feature that needs it ("the API's DB connection ships
+    inside F-001 Account and session endpoints"), and let the onboarding smoke
+    test be the proof that the component starts at all.
   - **Granularity**: one feature = one independently verifiable behavior. If you
     can't capture proof of it passing (screenshot for UI, request transcript for
     an API), it's not a feature — fold infra work into the feature that first

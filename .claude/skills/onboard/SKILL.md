@@ -29,9 +29,12 @@ during the Product theme.
 If `docs/constitution.md` exists, this repository was already onboarded. Never
 overwrite anything silently. Offer:
 
-1. **Resume smoke test** — only offer if no `evidence/onboarding-smoke-*` proof
-   exists: docs were generated but the post-restart smoke test never ran. Jump
-   straight to Phase 6.
+1. **Resume smoke test** — offer whenever **any** component in
+   `components.json` has no `evidence/onboarding-smoke-<id>.*` proof. This is
+   the normal state after a first run: components verified over plain Bash
+   (`ios`, `api`, `cli`) get smoke-tested immediately, while `browser`
+   components must wait for the MCP restart. Jump to Phase 6 and smoke-test
+   only the components still missing proof.
 2. **Add a component** — the project grew a deliverable (an API, a site) after
    onboarding. Run the Project shape questions (Q-S1 follow-ups, Q-S3 wiring)
    and the Q-T1 stack question **for the new component only**, then:
@@ -89,8 +92,12 @@ and conduct the interview under these rules:
   ("From your brief I take X — correct me if wrong") and move on.
 - **Every question accepts "You decide"**: you choose, and you record the choice
   plus a one-line rationale in the relevant doc.
-- **Budget**: at most 5 questions per theme (drop or merge the lowest-value gaps
-  when a theme has more); total interview target ≤ 20 minutes.
+- **Budget**: at most 5 questions per theme, with two explicit exemptions —
+  Q-S1's per-component follow-ups (ask them as ONE grouped call, not N
+  questions) and Q-T1, which is asked once **per component** regardless of
+  count. Drop or merge the lowest-value gaps elsewhere. Realistic length:
+  ~25 questions and 30-45 min for a single component, ~40 questions and 45-70
+  min for three.
 - **After each theme**: reflect a 2-line summary back to the user before moving
   to the next theme.
 
@@ -134,9 +141,16 @@ resolve them; fix the docs.
 ## Phase 4 — Design
 
 Run the `/design` skill flow: read `.claude/skills/design/SKILL.md` and follow
-it — do not duplicate its logic here. It proposes 2–3 rendered art directions
-(previews saved under `evidence/`), lets the user pick, then writes
-`docs/design/DESIGN.md`, the design tokens and `docs/design/voice.md`.
+it — do not duplicate its logic here. It proposes 2–3 art directions as preview
+pages, lets the user pick, then writes `docs/design/DESIGN.md`, the design
+tokens and `docs/design/voice.md`.
+
+**Expectation-setting on a first run:** no browser MCP server is approved yet
+(`.mcp.json` is only written in Phase 5, and takes effect after the restart), so
+you cannot screenshot the previews here. Write the candidate HTML files to
+`evidence/design-candidate-<n>.html` and ask the user to open them — say so
+plainly rather than pretending to render them. After the Phase 6 restart,
+`/design revise` can screenshot them.
 
 Design is not optional: no UI work is allowed in this repo before
 `docs/design/DESIGN.md` exists.

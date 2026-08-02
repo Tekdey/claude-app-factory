@@ -115,10 +115,14 @@ Typically answered by: an architecture note or scope section in `context/docs/`.
 ### Q-S3 · How do the components talk to each other? *(skip if single component)*
 - **Ask**: "Roughly how do these fit together — which one calls which, and is
   anything shared between them?"
-- **Options**: (a) app + site both call the API **(recommended for the classic
-  app + API + landing shape)** · (b) the site is fully standalone, just a CTA
-  linking out · (c) shared design tokens or types package between components ·
-  (d) let the agent propose the wiring in `architecture.md` and confirm.
+- **Ask it per edge, not once**: for each non-primary component, "does it call
+  another component at runtime, and which one?" Then derive `depends_on`.
+  Common shapes to offer as shortcuts: (a) the app calls the API and the
+  marketing site is standalone with a CTA linking out **(recommended — the
+  classic app + API + landing shape)** · (b) app AND site both call the API
+  (the site has signup or dynamic content) · (c) everything standalone ·
+  (d) a shared tokens/types package consumed by several components ·
+  (e) let the agent propose the wiring in `architecture.md` and confirm.
 - **Feeds**: `depends_on` in `components.json`, the system diagram in
   `architecture.md`, and the build order in the roadmap (a component that others
   depend on is built first).
@@ -305,8 +309,11 @@ Typically answered by: brand guide with voice section in `context/brand/`.
 
 ### Q-V4 · Name, tagline, forbidden words
 - **Ask**: "Is the app name final? A tagline? Any words to never use?"
-- **Options**: free text. If no name: offer to shortlist 5 candidates after
-  the interview (record as a PRD open question, don't block).
+- **Options**: free text. A **working name is required before Phase 5** — it
+  names the Xcode project, the bundle id, every script and the CLAUDE.md
+  identity line. If the user has none, shortlist 5 candidates and have them pick
+  one now; note in the PRD open questions that the final name may still change
+  (renaming is cheap now, expensive after the scaffold).
 - **Recommended**: —
 - **Skip if**: name/tagline in `context/`, or given via `$ARGUMENTS`
   (confirm it).

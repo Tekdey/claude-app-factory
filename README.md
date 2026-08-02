@@ -2,6 +2,15 @@
 
 **A GitHub template for products built end-to-end by AI agents.**
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](LICENSE)
+[![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-D97757?style=flat-square)](https://claude.com/claude-code)
+
+**Project status:** new. The onboarding flow has been reviewed end to end, but it has
+not yet been battle-tested across many real projects — expect rough edges on unusual
+stacks or component combinations. If something breaks or feels wrong,
+[open an issue](https://github.com/Tekdey/claude-app-factory/issues); reports of what
+the agent actually did are the fastest way to make this better.
+
 Clone it, answer a guided interview, and Claude Code generates the entire project
 foundation — constitution, product brief (Lean Canvas), PRD, personas, roadmap,
 architecture decisions (ADRs), design system, tone of voice — then builds your product
@@ -16,6 +25,30 @@ design system, one roadmap.
 Your role: product owner. You answer questions, approve the direction, and watch the
 app take shape. The agent's role: the entire development team.
 
+## How it works
+
+Onboarding runs once and turns an empty template into a fully specified project.
+Everything after that is the same loop, one feature per session, until the backlog is
+empty.
+
+```mermaid
+flowchart TD
+    A["Clone the template"] --> B["context/ — brief, brand, inspiration"]
+    B --> C["/onboard interview"]
+    C --> D["docs/ — constitution, brief, PRD,<br/>personas, roadmap, ADRs, design, voice"]
+    C --> E["components.json · features.json<br/>one scaffold per component · .mcp.json"]
+
+    subgraph BN["/build-next — one feature per session"]
+        direction LR
+        F["spec"] --> G["plan"] --> H["implement"] --> I["verify on the real<br/>running component"] --> J["evidence/ · passes: true"] --> K["review"]
+    end
+
+    D --> F
+    E --> F
+    K -->|"next feature"| F
+    K --> S["/status — where things stand"]
+```
+
 ## Quick start
 
 1. **Create your repository** — click **"Use this template"** on GitHub (or clone this
@@ -29,8 +62,9 @@ app take shape. The agent's role: the entire development team.
    prompt, then approve the proposed MCP servers. (Optional but useful:
    `./init.sh doctor` checks your environment first.)
 4. **Run `/onboard`** — answer the guided interview: product, **what the project ships**,
-   audience, business model, design, tone, tech. Budget 15–20 minutes. Every question
-   offers concrete options and a "you decide" escape hatch.
+   audience, business model, design, tone, tech. Budget 30–45 minutes for a single
+   component, 45–70 for three. Every question offers concrete options and a "you decide"
+   escape hatch, so answering "your call" throughout is much faster.
 5. **Let the agent generate** — it writes every foundation document into `docs/`, creates
    `components.json` (what ships) and `features.json` (the ledger of features to build),
    scaffolds each component in `apps/<id>/`, configures the MCP servers they need, and
@@ -172,6 +206,15 @@ This template assembles and adapts patterns from remarkable open source projects
 - [Ash Maurya's Lean Canvas](https://leanstack.com/lean-canvas) — product brief structure
 
 Licenses and adaptation details: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Contributing
+
+Contributions change the **machinery** — skills, agents, hooks, templates, scaffold
+recipes — never product code. Start with [CONTRIBUTING.md](CONTRIBUTING.md): it covers
+the repo layout, how to test a change (clone to a temp dir, run `/onboard`, inspect what
+came out), and the conventions that break things silently if ignored. Participation is
+governed by the [Code of Conduct](CODE_OF_CONDUCT.md); vulnerabilities go through
+[SECURITY.md](SECURITY.md), not a public issue.
 
 ## License
 

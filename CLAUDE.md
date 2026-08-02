@@ -43,7 +43,7 @@ Do NOT read everything every session. Read exactly what the task needs:
 1. **Spec before code** — every feature gets `specs/changes/F-XXX-kebab-title/` (spec.md, plan.md, tasks.md) before implementation.
 2. **EARS requirements** — `WHEN <trigger> THE SYSTEM SHALL <behavior>` (+ IF/WHILE/WHERE variants), plus Given/When/Then acceptance scenarios.
 3. **Evidence** — a feature is done only when its acceptance scenarios pass on the real running component, with proof saved as `evidence/F-XXX-<kebab-title>.<ext>` (see §6).
-4. **Accessibility snapshot before tap** — when driving a UI component (simulator/browser), always take an accessibility snapshot (`describe_ui` / aria snapshot) before interacting; never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation. Non-UI components (`api`, `cli`) prove themselves with a request/command transcript instead.
+4. **Accessibility snapshot before tap** — when driving a UI component (simulator/browser), always take an accessibility snapshot (`snapshot_ui` / aria snapshot) before interacting; never guess coordinates from screenshots. Screenshot = evidence, snapshot = navigation. Non-UI components (`api`, `cli`) prove themselves with a request/command transcript instead.
 5. **One feature per session** — finish (or cleanly park) before touching anything else.
 6. **ADR for every hard-to-reverse tech choice** (framework, storage, auth, payments, sync) — use `templates/docs/adr.md`, file it in `docs/adr/`.
 7. **Never read `.env`** — permissions deny it; do not attempt workarounds.
