@@ -1,0 +1,28 @@
+# Secrets — never committed, and the agent is denied from reading them
+# (see the deny rules in .claude/settings.json)
+.env
+.env.*
+!.env.example
+
+# Local Claude Code overrides (per-machine settings)
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# App build artifacts
+DerivedData/
+build/
+dist/
+.expo/
+
+# Logs
+*.log
+
+# Evidence: screenshots ARE committed (they are the proof that features work),
+# but large video captures are not.
+evidence/*.mov
+evidence/*.mp4

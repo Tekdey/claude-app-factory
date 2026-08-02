@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# OPTIONAL — Claude Code GitHub Action (disabled while named *.example).
+#
+# To enable:
+#   1. Rename this file to claude.yml
+#   2. Add ANTHROPIC_API_KEY to the repository secrets
+#      (Settings > Secrets and variables > Actions > New repository secret)
+#
+# Then mention @claude in any issue or pull-request comment to have the agent
+# respond, implement changes, or fix failures — right from GitHub.
+# Docs: https://github.com/anthropics/claude-code-action
+# ---------------------------------------------------------------------------
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude:
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

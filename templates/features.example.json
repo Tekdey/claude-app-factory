@@ -1,0 +1,77 @@
+{
+  "$comment": "Autonomous-build ledger. Anthropic long-running-agent harness pattern. EXAMPLE for a fictional habit-tracker app ('Habitude') — /onboard generates the real features.json at the repo root from the PRD. One entry per FR; passes flips to true only when the evidence file exists in evidence/ (bare path here, as in F-001; the justification goes in PROGRESS.md).",
+  "features": [
+    {
+      "id": "F-001",
+      "title": "Create a habit",
+      "description": "From the home screen, the user can create a habit with a name and a repeat schedule (daily or specific weekdays); the new habit appears in the home list immediately.",
+      "source": "docs/product/prd.md#FR-001",
+      "priority": "P1",
+      "passes": true,
+      "evidence": "evidence/F-001-create-a-habit.png"
+    },
+    {
+      "id": "F-002",
+      "title": "Check off today",
+      "description": "The user can mark a habit as done for today with one tap on its row; the row shows a completed state and the action can be undone the same day.",
+      "source": "docs/product/prd.md#FR-002",
+      "priority": "P1",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-003",
+      "title": "Streak counter",
+      "description": "Each habit row shows its current streak (consecutive scheduled days completed); the streak increments on check-off and resets to zero when a scheduled day passes without completion.",
+      "source": "docs/product/prd.md#FR-003",
+      "priority": "P1",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-004",
+      "title": "Edit and delete habits",
+      "description": "The user can rename a habit, change its schedule, or delete it after a confirmation step; history of past completions is preserved on edit.",
+      "source": "docs/product/prd.md#FR-004",
+      "priority": "P2",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-005",
+      "title": "Daily reminder",
+      "description": "The user can enable one daily reminder time per habit; a local notification fires at that time on scheduled days and deep-links to the habit on tap.",
+      "source": "docs/product/prd.md#FR-005",
+      "priority": "P2",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-006",
+      "title": "Weekly progress view",
+      "description": "A progress screen shows the last 7 days as a grid of habits versus days, with per-habit completion counts and an overall completion percentage for the week.",
+      "source": "docs/product/prd.md#FR-006",
+      "priority": "P2",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-007",
+      "title": "Multi-device sync",
+      "description": "Habits and completions sync across the user's devices; a change made on one device appears on another within a minute when both are online, with offline changes merged on reconnect.",
+      "source": "docs/product/prd.md#FR-007",
+      "priority": "P3",
+      "passes": false,
+      "evidence": null
+    },
+    {
+      "id": "F-008",
+      "title": "Home screen widget",
+      "description": "A home screen widget shows today's habits and their completion state; tapping the widget opens the app on the home list.",
+      "source": "docs/product/prd.md#FR-008",
+      "priority": "P3",
+      "passes": false,
+      "evidence": null
+    }
+  ]
+}
